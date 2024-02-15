@@ -1,0 +1,15 @@
+{
+  "name": "@orago/dom",
+  "version": "0.0.4",
+  "description": "Orago's Game library",
+  "type": "module",
+  "main": "src/dom.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Orago",
+  "license": "ISC",
+  "dependencies": {
+    "uuid": "^9.0.1"
+  }
+}
