@@ -1,6 +1,6 @@
 {
 	"name": "@orago/dom",
-	"version": "0.0.9",
+	"version": "0.0.5",
 	"description": "Orago's Game library",
 	"type": "module",
 	"main": "esm/dom.js",
@@ -22,7 +22,6 @@
 	"author": "Orago",
 	"license": "ISC",
 	"dependencies": {
-		"@orago/lib": "^0.0.16",
 		"uuid": "^9.0.1"
 	},
 	"devDependencies": {

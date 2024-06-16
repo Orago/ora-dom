@@ -2,54 +2,31 @@ import { ObserverGroup } from './domObserver.js';
 
 const nodeObservers = new ObserverGroup;
 
-/**
- * @typedef {{
- *  [style: string]: (string | number) | {[style: string]: string | number},
- * }} stylesInput
- */
+type stylesInput = {
+	[style: string]: (string | number) | { [style: string]: string | number; };
+};
 
-/**
- * @typedef {ProxyNode | Element} extractable
- */
+type extractable = ProxyNode | Element;
+
 export class ProxyNode {
-	/**
-	 * 
-	 * @param {extractable} node 
-	 * @returns {Element}
-	 */
-	static extractEl(node) {
+	static extractEl(node: extractable): Element {
 		return node instanceof ProxyNode ? node.element : node;
 	}
 
-	/**
-	 * @param {ProxyNode | any} el 
-	 * @returns {boolean}
-	 */
-	static isNode(el) {
+	static isNode(el: ProxyNode | any): boolean {
 		return el instanceof ProxyNode;
 	}
 
 	data = {};
 	privateData = {};
-
-	/**
-	 * @type {Element}
-	 */
-	element;
-
-	/**
-	 * @type {{[key: string]: {[listener: string]: ReturnType<Function['bind']> }}}
-	 */
-	listeners = {};
+	element: Element;
+	listeners: { [key: string]: { [listener: string]: ReturnType<Function['bind']>; }; } = {};
 
 	get call() {
 		return this
 	}
 
-	/**
-	 * @param {Element | string | ProxyNode} el 
-	 */
-	constructor(el) {
+	constructor(el: Element | string | ProxyNode) {
 		if (typeof el === 'string') {
 			this.element = document.createElement(el);
 		} else if (
@@ -77,8 +54,7 @@ export class ProxyNode {
 		return this.element.getBoundingClientRect()
 	}
 
-	/** @returns {ProxyNode | undefined} */
-	get parent() {
+	get parent(): ProxyNode | undefined {
 		const parent = this.element.parentElement;
 
 		if (parent != null) {
@@ -86,8 +62,7 @@ export class ProxyNode {
 		}
 	}
 
-	/** @returns {string} */
-	get value() {
+	get value(): string {
 		if (this.element instanceof HTMLInputElement) {
 			return this.element.value;
 		} else {
@@ -95,8 +70,7 @@ export class ProxyNode {
 		}
 	}
 
-	/** @param {string} value */
-	set value(value) {
+	set value(value: string) {
 		if (this.element instanceof HTMLInputElement) {
 			this.element.value = value;
 		} else {
@@ -106,48 +80,31 @@ export class ProxyNode {
 
 	/**
 	 * @deprecated
-	 * @returns {this['ref']}
 	 */
-	get wrapper() {
+	get wrapper(): this['ref'] {
 		return this.ref;
 	}
 
-	/**
-	 * @param {function (ProxyNode): void} run
-	 * @returns {this}
-	 */
-	ref(run) {
+	ref(run: (arg0: ProxyNode) => void): this {
 		run(this);
 
 		return this;
 	}
 
 	//#region //* Default Utils *//
-	/**
-	 * @param {string} content 
-	 * @returns {this}
-	 */
-	text(content) {
+	text(content: string): this {
 		this.element.textContent = content;
 
 		return this;
 	}
 
-	/**
-	 * @param {string} value 
-	 * @returns {this}
-	 */
-	id(value) {
+	id(value: string): this {
 		this.element.id = value;
 
 		return this;
 	}
 
-	/**
-	 * @param {{[attribute: string]: string|number}} attributes 
-	 * @returns {this}
-	 */
-	attr(attributes = {}) {
+	attr(attributes: { [attribute: string]: string | number; } = {}): this {
 		if (typeof attributes != 'object') {
 			return this;
 		}
@@ -159,12 +116,7 @@ export class ProxyNode {
 		return this;
 	}
 
-	/**
-	 * 
-	 * @param {this | HTMLElement} node 
-	 * @returns {this}
-	 */
-	swap(node) {
+	swap(node: this | HTMLElement): this {
 		const newNode = ProxyNode.extractEl(node);
 
 		this.element.replaceWith(newNode);
@@ -175,9 +127,8 @@ export class ProxyNode {
 
 	/**
 	 * Creates a cloned node
-	 * @returns {ProxyNode}
 	 */
-	clone() {
+	clone(): ProxyNode {
 		return new ProxyNode(
 			// @ts-ignore
 			this.element.cloneNode(true)
@@ -186,9 +137,8 @@ export class ProxyNode {
 
 	/**
 	 * Clears inner content
-	 * @returns {this}
 	 */
-	clear() {
+	clear(): this {
 		this.element.textContent = '';
 
 		return this;
@@ -196,25 +146,19 @@ export class ProxyNode {
 
 	/**
 	 * Checks if dom contains element
-	 * @returns {boolean}
 	 */
-	exists() {
+	exists(): boolean {
 		return document.body.contains(this.element);
 	}
 
 	/**
 	 * Returns a list of child proxy nodes
-	 * @returns {Array<ProxyNode>}
 	 */
-	getChildren() {
-		return [...this.element.children].map(documentEl => new ProxyNode(documentEl));
+	getChildren(): Array<ProxyNode> {
+		return Array.from(this.element.children).map(documentEl => new ProxyNode(documentEl));
 	}
 
-	/**
-	 * @param  {...('content' | 'style' | 'class')} toReset 
-	 * @returns {this}
-	 */
-	reset(...toReset) {
+	reset(...toReset: ('content' | 'style' | 'class')[]): this {
 		const options = toReset.length > 0 ? toReset : ['content', 'style', 'class'];
 
 		for (const option of options) {
@@ -243,50 +187,33 @@ export class ProxyNode {
 	//#endregion //* Default Utils *//
 
 	//#region //* Classes *//
-	/**
-	 * @param  {...string} args 
-	 * @returns {this}
-	 */
-	class(...args) {
+	class(...args: string[]): this {
 		this.element.className = args.join(' ');
 
 		return this;
 	}
 
-	/**
-	 * @param {string} className 
-	 * @returns {boolean}
-	 */
-	hasClass(className) {
+	hasClass(className: string): boolean {
 		return this.element.classList.contains(className);
 	}
 
-	/**
-	 * @param  {...string} args 
-	 * @returns {this}
-	 */
-	addClass(...args) {
-		for (const arg of args){
-			if (arg.includes(' ')){
+	addClass(...args: string[]): this {
+		for (const arg of args) {
+			if (arg.includes(' ')) {
 				args.splice(args.indexOf(arg), 1, ...arg.split(' '));
-			} else if (Array.isArray(arg)){
+			} else if (Array.isArray(arg)) {
 				args.splice(args.indexOf(arg), 1, ...arg);
 			}
 		}
 
-		if (Array.isArray(args)){
+		if (Array.isArray(args)) {
 			this.element.classList.add(...args);
 		}
 
 		return this;
 	}
 
-	/**
-	 * 
-	 * @param  {...string} args 
-	 * @returns {this}
-	 */
-	removeClass(...args) {
+	removeClass(...args: string[]): this {
 		for (const arg of args) {
 			if (arg.includes(' ')) {
 				args.splice(args.indexOf(arg), 1, ...arg.split(' '));
@@ -300,12 +227,7 @@ export class ProxyNode {
 		return this;
 	}
 
-	/**
-	 * @param {string} className 
-	 * @param {boolean} status 
-	 * @returns {this}
-	 */
-	toggleClass(className, status = !this.hasClass(className)) {
+	toggleClass(className: string, status: boolean = !this.hasClass(className)): this {
 		status ? this.addClass(className) : this.removeClass(className);
 
 		return this;
@@ -313,11 +235,7 @@ export class ProxyNode {
 	//#endregion //* Classes *//
 
 	//#region //* Styles *//
-	/**
-	 * @param {stylesInput} styles 
-	 * @returns {this}
-	 */
-	styles(styles = {}) {
+	styles(styles: stylesInput = {}): this {
 		if (typeof styles != 'object') {
 			return this;
 		} else if (this.element instanceof HTMLElement != true) {
@@ -338,11 +256,7 @@ export class ProxyNode {
 		return this;
 	}
 
-	/**
-	 * @param  {...string} styles 
-	 * @returns {this}
-	 */
-	removeStyles(...styles) {
+	removeStyles(...styles: string[]): this {
 		if (this.element instanceof HTMLElement != true) {
 			return this;
 		}
@@ -356,13 +270,7 @@ export class ProxyNode {
 	//#endregion //* Styles *//
 
 	//#region //* Listeners *//
-	/**
-	 * 
-	 * @param {string} event 
-	 * @param {Function} callback 
-	 * @returns {this}
-	 */
-	on(event, callback) {
+	on(event: string, callback: Function): this {
 		this.addListener({
 			temp: {
 				[event]: callback
@@ -371,13 +279,7 @@ export class ProxyNode {
 
 		return this;
 	}
-
-	/**
-	 * 
-	 * @param {{[key: string]: {[listener: string]: Function}}} events 
-	 * @returns {this}
-	 */
-	addListener(events) {
+	addListener(events: { [key: string]: { [listener: string]: Function; }; }): this {
 		for (const [key, event] of Object.entries(events)) {
 			for (const [listener, fn] of Object.entries(event)) {
 				if (
@@ -400,12 +302,7 @@ export class ProxyNode {
 		return this;
 	}
 
-	/**
-	 * 
-	 * @param {*} key 
-	 * @returns {this}
-	 */
-	removeListener(key) {
+	removeListener(key: any): this {
 		for (const listener in this.listeners[key]) {
 			this.element.removeEventListener(
 				listener,
@@ -421,13 +318,10 @@ export class ProxyNode {
 
 	//#region //* Intervals *//
 	/**
-	 * @param {Function} callback 
-	 * @param {number} [time]  
-	 * @param {boolean} [immediate] 
-	 * @returns {this}
+	 * 
 	 * @deprecated - stop using this dumbass 
 	 */
-	interval(callback, time = 1000, immediate = false) {
+	interval(callback: Function, time: number = 1000, immediate: boolean = false): this {
 		const toCall = () => callback.bind(this)(this, () => clearInterval(tempInterval));
 
 		if (immediate) {
@@ -453,18 +347,12 @@ export class ProxyNode {
 
 	/**
 	 * clears the content and appends
-	 * @param  {...any} content 
-	 * @returns {this}
 	 */
-	setContent(...content) {
+	setContent(...content: any[]): this {
 		return this.clear().append(...content);
 	}
 
-	/**
-	 * @param  {...extractable | false | string | Array<extractable | false | string>} objs 
-	 * @returns {this}
-	 */
-	append(...objs) {
+	append(...objs: (extractable | false | string | Array<extractable | false | string>)[]): this {
 		if (objs.length < 1) {
 			return this;
 		}
@@ -494,12 +382,7 @@ export class ProxyNode {
 		return this;
 	}
 
-	/**
-	 * 
-	 * @param {extractable | false} obj 
-	 * @returns {this}
-	 */
-	appendTo(obj) {
+	appendTo(obj: extractable | false): this {
 		if (obj == false) {
 			return this;
 		}
@@ -511,11 +394,7 @@ export class ProxyNode {
 		return this;
 	}
 
-	/**
-	 * @param {extractable} obj 
-	 * @returns {this}
-	 */
-	prependTo(obj) {
+	prependTo(obj: extractable): this {
 		if (obj == null) {
 			return this;
 		}
@@ -527,11 +406,7 @@ export class ProxyNode {
 		return this;
 	}
 
-	/**
-	 * @param  {...extractable} objs 
-	 * @returns {this}
-	 */
-	prepend(...objs) {
+	prepend(...objs: extractable[]): this {
 		if (objs.length < 1) {
 			return this;
 		}
@@ -574,23 +449,16 @@ export class ProxyNode {
 		return this;
 	}
 
-	/**
-	 * @param {import('./domObserver.js').methods} methods 
-	 * @param {import('./domObserver.js').options} [options] 
-	 * @returns {this}
-	 */
-	observer(methods, options) {
+	observer(
+		methods: import('./domObserver.js').Methods,
+		options?: import('./domObserver.js').Options
+	): this {
 		nodeObservers.create(this, methods, options);
 
 		return this;
 	}
 
-	/**
-	 * 
-	 * @param {number} index 
-	 * @returns {this}
-	 */
-	setTabIndex(index) {
+	setTabIndex(index: number): this {
 		if (typeof index == 'number') {
 			if (0 > index) {
 				this.element.removeAttribute('tabindex');
@@ -605,8 +473,7 @@ export class ProxyNode {
 	horizontalScrolling() {
 		this.on(
 			'wheel',
-			/** @param {any} event */
-			event => {
+			(event: any) => {
 				event.preventDefault();
 				this.element.scrollLeft += event.deltaY;
 			}
@@ -617,56 +484,34 @@ export class ProxyNode {
 	//#endregion //* Random *//
 }
 
-/**
- * @param {HTMLElement | Element} el 
- * @returns {ProxyNode}
- */
-export function generateProxyNode(el) {
+export function generateProxyNode(el: HTMLElement | Element): ProxyNode {
 	return new ProxyNode(el);
 }
 
-/**
- * @typedef {{[elementTag: string]: ProxyNode}} newNode
- */
+type newNode = { [elementTag: string]: ProxyNode; };
 
-
-/**
- * @type {newNode}
- */
-export const newNode = new Proxy({}, {
-	/**
-	 * 
-	 * @param {undefined} target 
-	 * @param {string} elementTag 
-	 * @returns {ProxyNode}
-	 */
-	// @ts-ignore
-	get(target, elementTag) {
+export const newNode: newNode = new Proxy({}, {
+	get(target: object, elementTag: string): ProxyNode {
 		return generateProxyNode(
 			document.createElement(elementTag)
 		);
 	}
 });
 
-
-/**
- * @param {string} selector 
- * @param {HTMLElement | Document} element 
- * @returns {ProxyNode | null}
- */
-export function qs(selector, element = document) {
+export function qs(
+	selector: string,
+	element: HTMLElement | Document = document
+): ProxyNode | null {
 	const currentNode = element.querySelector(selector);
 
 	return currentNode ? new ProxyNode(currentNode) : null;
 }
 
-/**
- * @param {string} selector 
- * @param {HTMLElement | Document} element 
- * @returns {Array<ProxyNode>}
- */
-export function qsAll(selector, element = document) {
-	return [...element.querySelectorAll(selector)].map(
+export function qsAll(
+	selector: string,
+	element: HTMLElement | Document = document
+): Array<ProxyNode> {
+	return Array.from(element.querySelectorAll(selector)).map(
 		$ => $ ? new ProxyNode($) : newNode.div
 	);
 }

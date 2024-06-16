@@ -1,15 +1,36 @@
 import { ObserverGroup } from './domObserver.js';
+import Emitter from '@orago/lib/emitter';
 
 const nodeObservers = new ObserverGroup;
 
-type stylesInput = {
-	[style: string]: (string | number) | { [style: string]: string | number; };
+
+type Extractable = ProxyNode | Element;
+
+interface DomAnimationOptions {
+	save?: boolean;
+
+	onFinish?: ((this: Animation, ev?: Event) => any);
+	onCancel?: ((this: Animation, ev?: Event) => any);
+	onRemove?: ((this: Animation, ev?: Event) => any);
+	animationReference?: (param0: Animation) => void
+}
+
+export interface AnimationMethods {
+	onFinish?: Function;
+	onCancel?: Function;
+	onRemove?: Function;
+}
+
+export type StyleDeclaration = Partial<Record<keyof CSSStyleDeclaration, string | number>>
+
+export type StyleDeclarationWithProps = StyleDeclaration & {
+	props?: {
+		[propName: string]: string | number
+	};
 };
 
-type extractable = ProxyNode | Element;
-
 export class ProxyNode {
-	static extractEl(node: extractable): Element {
+	static extractEl(node: Extractable): Element {
 		return node instanceof ProxyNode ? node.element : node;
 	}
 
@@ -17,13 +38,15 @@ export class ProxyNode {
 		return el instanceof ProxyNode;
 	}
 
-	data = {};
-	privateData = {};
+	data: any = {};
+	privateData: any = {};
 	element: Element;
 	listeners: { [key: string]: { [listener: string]: ReturnType<Function['bind']>; }; } = {};
+	events?: Emitter;
+	#observerEventHandler: boolean = false;
 
 	get call() {
-		return this
+		return this;
 	}
 
 	constructor(el: Element | string | ProxyNode) {
@@ -85,7 +108,7 @@ export class ProxyNode {
 		return this.ref;
 	}
 
-	ref(run: (arg0: ProxyNode) => void): this {
+	ref(run: (arg0: this) => void): this {
 		run(this);
 
 		return this;
@@ -235,7 +258,7 @@ export class ProxyNode {
 	//#endregion //* Classes *//
 
 	//#region //* Styles *//
-	styles(styles: stylesInput = {}): this {
+	styles(styles: StyleDeclarationWithProps = {}): this {
 		if (typeof styles != 'object') {
 			return this;
 		} else if (this.element instanceof HTMLElement != true) {
@@ -244,7 +267,7 @@ export class ProxyNode {
 
 		for (const [key, value] of Object.entries(styles)) {
 			if (key === 'props') {
-				for (const [propKey, propValue] of Object.entries(value)) {
+				for (const [propKey, propValue] of Object.entries(<{ [key: string]: string }>value)) {
 					this.element.style.setProperty(`--${propKey}`, propValue);
 				}
 			}
@@ -269,16 +292,44 @@ export class ProxyNode {
 	}
 	//#endregion //* Styles *//
 
+	private get safeEvents() {
+		return this.events ??= new Emitter();
+	}
+
 	//#region //* Listeners *//
 	on(event: string, callback: Function): this {
-		this.addListener({
-			temp: {
-				[event]: callback
+		if (event === 'remove' || event === 'append') {
+			if (this.#observerEventHandler != true) {
+				this.#observerEventHandler = true;
+
+				this.observer({
+					onAdd: () => this.emitEvent('append'),
+					onRemove: () => this.emitEvent('remove')
+				});
 			}
-		});
+
+			if (event === 'remove') {
+				this.onEvent('remove', callback);
+			} else if (event === 'append') {
+				this.onEvent('append', callback);
+			}
+		} else {
+			this.addListener({
+				temp: { [event]: callback }
+			});
+		}
 
 		return this;
 	}
+
+	onEvent(event: string, handler: Function) {
+		this.safeEvents.on(event, handler);
+	}
+
+	emitEvent(event: string, ...args: any[]) {
+		this.safeEvents.emit(event, ...args);
+	}
+
 	addListener(events: { [key: string]: { [listener: string]: Function; }; }): this {
 		for (const [key, event] of Object.entries(events)) {
 			for (const [listener, fn] of Object.entries(event)) {
@@ -352,7 +403,7 @@ export class ProxyNode {
 		return this.clear().append(...content);
 	}
 
-	append(...objs: (extractable | false | string | Array<extractable | false | string>)[]): this {
+	append(...objs: (Extractable | false | string | Array<Extractable | false | string>)[]): this {
 		if (objs.length < 1) {
 			return this;
 		}
@@ -382,7 +433,7 @@ export class ProxyNode {
 		return this;
 	}
 
-	appendTo(obj: extractable | false): this {
+	appendTo(obj: Extractable | false): this {
 		if (obj == false) {
 			return this;
 		}
@@ -394,7 +445,7 @@ export class ProxyNode {
 		return this;
 	}
 
-	prependTo(obj: extractable): this {
+	prependTo(obj: Extractable): this {
 		if (obj == null) {
 			return this;
 		}
@@ -406,7 +457,7 @@ export class ProxyNode {
 		return this;
 	}
 
-	prepend(...objs: extractable[]): this {
+	prepend(...objs: Extractable[]): this {
 		if (objs.length < 1) {
 			return this;
 		}
@@ -481,6 +532,31 @@ export class ProxyNode {
 
 		return this;
 	}
+
+	animate(
+		styles: Array<StyleDeclaration>,
+		options: number | (KeyframeAnimationOptions & DomAnimationOptions)
+	) {
+		const instance = this.element.animate(<Array<Keyframe>>styles, options);
+
+		if (typeof options === 'object') {
+			instance.onfinish = (ev) => {
+				if (options.save === true) {
+					this.styles(
+						styles[styles.length - 1]
+					);
+				}
+
+				options.onFinish?.bind(instance)?.(ev);
+			}
+
+			options.onCancel && (instance.oncancel = options.onCancel);
+			options.onRemove && (instance.onremove = options.onRemove);
+			options.animationReference?.(instance);
+		}
+
+		return this;
+	}
 	//#endregion //* Random *//
 }
 
@@ -511,9 +587,11 @@ export function qsAll(
 	selector: string,
 	element: HTMLElement | Document = document
 ): Array<ProxyNode> {
-	return Array.from(element.querySelectorAll(selector)).map(
-		$ => $ ? new ProxyNode($) : newNode.div
-	);
+	return Array
+		.from(element.querySelectorAll(selector))
+		.map(
+			$ => $ ? new ProxyNode($) : newNode.div
+		);
 }
 
 export default {

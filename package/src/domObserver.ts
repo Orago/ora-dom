@@ -1,29 +1,31 @@
 import { v4 as uuidV4 } from 'uuid';
 import { ProxyNode } from './dom.js';
 
-/**
- * @typedef {object} options
- * @property {true} [childList] -
- * @property {true} [subtree] -
- * @property {boolean} [killOnRemove] -
- */
+export interface Options {
+	childList?: true;
+	subtree?: true;
+	killOnRemove?: boolean;
+}
 
-/**
- * @typedef {object} methods
- * @property {Function} [onAdd] -
- * @property {Function} [onRemove] -
- */
+export interface Methods {
+	onAdd?: Function;
+	onRemove?: Function;
+}
 
 class ObservableNode {
 	parent;
+	id: string;
+	node: ProxyNode;
+	methods: Methods;
+	inDom: boolean;
+	options: Options;
 
-	/**
-	 * @param {ObserverGroup} parent 
-	 * @param {ProxyNode} domNode 
-	 * @param {methods} methods
-	 * @param {options} [options]
-	 */
-	constructor(parent, domNode, methods, options) {
+	constructor(
+		parent: ObserverGroup,
+		domNode: ProxyNode,
+		methods: Methods,
+		options?: Options
+	) {
 		if (typeof options != 'object') {
 			options = {};
 		}
@@ -81,14 +83,11 @@ export class ObserverGroup {
 		mainObserver.observe(document.body, { childList: true, subtree: true });
 	}
 
-	/**
-	 * 
-	 * @param {ProxyNode} node 
-	 * @param {methods} methods 
-	 * @param {options} [options]
-	 */
-	create(node, methods, options) {
-
+	create(
+		node: ProxyNode,
+		methods: Methods,
+		options?: Options
+	) {
 		new ObservableNode(this, node, methods, options);
 	}
 }
