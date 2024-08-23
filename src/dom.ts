@@ -1,33 +1,21 @@
-import { ObserverGroup } from './domObserver.js';
 import Emitter from '@orago/lib/emitter';
+import type {
+	StyleDeclaration,
+	StyleDeclarationWithProps,
+	DomAnimationOptions
+} from './types.d.ts';
+import { ObservableNode, ObserverGroup } from './domObserver.js';
 
-const nodeObservers = new ObserverGroup;
+export type {
+	StyleDeclaration,
+	StyleDeclarationWithProps
+} from './types.d.ts';
+
+export const nodeObservers = new ObserverGroup();
 
 
 type Extractable = ProxyNode | Element;
 
-interface DomAnimationOptions {
-	save?: boolean;
-
-	onFinish?: ((this: Animation, ev?: Event) => any);
-	onCancel?: ((this: Animation, ev?: Event) => any);
-	onRemove?: ((this: Animation, ev?: Event) => any);
-	animationReference?: (param0: Animation) => void
-}
-
-export interface AnimationMethods {
-	onFinish?: Function;
-	onCancel?: Function;
-	onRemove?: Function;
-}
-
-export type StyleDeclaration = Partial<Record<keyof CSSStyleDeclaration, string | number>>
-
-export type StyleDeclarationWithProps = StyleDeclaration & {
-	props?: {
-		[propName: string]: string | number
-	};
-};
 
 export class ProxyNode {
 	static extractEl(node: Extractable): Element {
@@ -43,26 +31,32 @@ export class ProxyNode {
 	element: Element;
 	listeners: { [key: string]: { [listener: string]: ReturnType<Function['bind']>; }; } = {};
 	events?: Emitter;
-	#observerEventHandler: boolean = false;
+	private _observer?: ObservableNode;
 
 	get call() {
 		return this;
 	}
 
 	constructor(el: Element | string | ProxyNode) {
-		if (typeof el === 'string') {
+		if (typeof el === 'string')
 			this.element = document.createElement(el);
-		} else if (
+
+		else if (
 			el instanceof Element ||
 			el instanceof HTMLElement ||
 			el instanceof HTMLInputElement
-		) {
+		)
 			this.element = el;
-		} else if (el instanceof ProxyNode) {
+
+		else if (el instanceof ProxyNode)
 			this.element = el.element;
-		} else {
-			throw new Error('Invalid el');
-		}
+
+		else
+			throw new Error('Invalid element');
+
+		// if (weakStorage.has(this.element) != true)
+		// 	weakStorage.set(this.element, new ProxyNodeStorage());
+
 	}
 
 	get focused() {
@@ -80,30 +74,26 @@ export class ProxyNode {
 	get parent(): ProxyNode | undefined {
 		const parent = this.element.parentElement;
 
-		if (parent != null) {
+		if (parent != null)
 			return new ProxyNode(parent);
-		}
 	}
 
 	get value(): string {
-		if (this.element instanceof HTMLInputElement) {
+		if (this.element instanceof HTMLInputElement)
 			return this.element.value;
-		} else {
-			return this.element.textContent ?? '';
-		}
+
+		return this.element.textContent ?? '';
 	}
 
 	set value(value: string) {
-		if (this.element instanceof HTMLInputElement) {
+		if (this.element instanceof HTMLInputElement)
 			this.element.value = value;
-		} else {
+
+		else
 			this.element.textContent = value;
-		}
 	}
 
-	/**
-	 * @deprecated
-	 */
+	/** @deprecated - removed in the next version */
 	get wrapper(): this['ref'] {
 		return this.ref;
 	}
@@ -128,13 +118,11 @@ export class ProxyNode {
 	}
 
 	attr(attributes: { [attribute: string]: string | number; } = {}): this {
-		if (typeof attributes != 'object') {
+		if (typeof attributes != 'object')
 			return this;
-		}
 
-		for (const [key, value] of Object.entries(attributes)) {
+		for (const [key, value] of Object.entries(attributes))
 			this.element.setAttribute(key, value + '');
-		}
 
 		return this;
 	}
@@ -153,8 +141,7 @@ export class ProxyNode {
 	 */
 	clone(): ProxyNode {
 		return new ProxyNode(
-			// @ts-ignore
-			this.element.cloneNode(true)
+			this.element.cloneNode(true) as Element
 		);
 	}
 
@@ -181,6 +168,12 @@ export class ProxyNode {
 		return Array.from(this.element.children).map(documentEl => new ProxyNode(documentEl));
 	}
 
+	/**
+	 * 
+	 * @param toReset 
+	 * @returns 
+	 * @deprecated - Possibly removed in the next version
+	 */
 	reset(...toReset: ('content' | 'style' | 'class')[]): this {
 		const options = toReset.length > 0 ? toReset : ['content', 'style', 'class'];
 
@@ -222,30 +215,26 @@ export class ProxyNode {
 
 	addClass(...args: string[]): this {
 		for (const arg of args) {
-			if (arg.includes(' ')) {
+			if (arg.includes(' '))
 				args.splice(args.indexOf(arg), 1, ...arg.split(' '));
-			} else if (Array.isArray(arg)) {
+
+			else if (Array.isArray(arg))
 				args.splice(args.indexOf(arg), 1, ...arg);
-			}
 		}
 
-		if (Array.isArray(args)) {
+		if (Array.isArray(args))
 			this.element.classList.add(...args);
-		}
 
 		return this;
 	}
 
 	removeClass(...args: string[]): this {
-		for (const arg of args) {
-			if (arg.includes(' ')) {
+		for (const arg of args)
+			if (arg.includes(' '))
 				args.splice(args.indexOf(arg), 1, ...arg.split(' '));
-			}
-		}
 
-		if (Array.isArray(args)) {
+		if (Array.isArray(args))
 			this.element.classList.remove(...args);
-		}
 
 		return this;
 	}
@@ -259,11 +248,11 @@ export class ProxyNode {
 
 	//#region //* Styles *//
 	styles(styles: StyleDeclarationWithProps = {}): this {
-		if (typeof styles != 'object') {
+		if (typeof styles != 'object')
 			return this;
-		} else if (this.element instanceof HTMLElement != true) {
+
+		if (this.element instanceof HTMLElement != true)
 			return this;
-		}
 
 		for (const [key, value] of Object.entries(styles)) {
 			if (key === 'props') {
@@ -280,13 +269,11 @@ export class ProxyNode {
 	}
 
 	removeStyles(...styles: string[]): this {
-		if (this.element instanceof HTMLElement != true) {
+		if (this.element instanceof HTMLElement != true)
 			return this;
-		}
 
-		for (const style of styles) {
+		for (const style of styles)
 			this.element.style.removeProperty(style);
-		}
 
 		return this;
 	}
@@ -299,35 +286,32 @@ export class ProxyNode {
 	//#region //* Listeners *//
 	on(event: string, callback: Function): this {
 		if (event === 'remove' || event === 'append') {
-			if (this.#observerEventHandler != true) {
-				this.#observerEventHandler = true;
+			if (this._observer == null)
+				this._observer = nodeObservers.create(this);
 
-				this.observer({
-					onAdd: () => this.emitEvent('append'),
-					onRemove: () => this.emitEvent('remove')
+			this._observer
+				.events
+				.on('append', () =>
+					this.safeEvents.emit('append')
+				)
+				.on('remove', () => {
+					this.safeEvents.emit('remove');
+					this._observer?.kill();
+					delete this._observer;
 				});
-			}
 
-			if (event === 'remove') {
-				this.onEvent('remove', callback);
-			} else if (event === 'append') {
-				this.onEvent('append', callback);
-			}
-		} else {
+			if (event === 'remove')
+				this.safeEvents.on('remove', callback);
+
+			else if (event === 'append')
+				this.safeEvents.on('append', callback);
+		}
+		else
 			this.addListener({
 				temp: { [event]: callback }
 			});
-		}
 
 		return this;
-	}
-
-	onEvent(event: string, handler: Function) {
-		this.safeEvents.on(event, handler);
-	}
-
-	emitEvent(event: string, ...args: any[]) {
-		this.safeEvents.emit(event, ...args);
 	}
 
 	addListener(events: { [key: string]: { [listener: string]: Function; }; }): this {
@@ -354,12 +338,12 @@ export class ProxyNode {
 	}
 
 	removeListener(key: any): this {
-		for (const listener in this.listeners[key]) {
+		for (const listener in this.listeners[key])
 			this.element.removeEventListener(
 				listener,
 				this.listeners[key][listener]
 			);
-		}
+
 
 		delete this.listeners[key]
 
@@ -375,15 +359,12 @@ export class ProxyNode {
 	interval(callback: Function, time: number = 1000, immediate: boolean = false): this {
 		const toCall = () => callback.bind(this)(this, () => clearInterval(tempInterval));
 
-		if (immediate) {
+		if (immediate)
 			toCall();
-		}
 
-		let tempInterval = setInterval(toCall, time);
+		const tempInterval = setInterval(toCall, time);
 
-		this.observer({
-			onRemove: () => clearInterval(tempInterval)
-		});
+		this.on('remove', () => clearInterval(tempInterval));
 
 		return this;
 	}
@@ -404,39 +385,37 @@ export class ProxyNode {
 	}
 
 	append(...objs: (Extractable | false | string | Array<Extractable | false | string>)[]): this {
-		if (objs.length < 1) {
+		if (objs.length < 1)
 			return this;
-		}
 
-		for (const el of objs) {
-			if (Array.isArray(el)) {
-				objs.splice(objs.indexOf(el), 1, ...el);
-			}
-		}
+		for (const el of objs)
+			if (Array.isArray(el))
+				objs.splice(
+					objs.indexOf(el),
+					1,
+					...el
+				);
 
 		for (const item of objs) {
 			if (
 				item == false ||
 				item == null ||
 				Array.isArray(item)
-			) {
-				continue;
-			} else if (typeof item === 'string') {
-				this.element.append(item);
-			} else {
-				this.element.append(
+			) continue;
+
+			this.element.append(
+				typeof item === 'string' ?
+					item :
 					ProxyNode.extractEl(item)
-				);
-			}
+			);
 		}
 
 		return this;
 	}
 
 	appendTo(obj: Extractable | false): this {
-		if (obj == false) {
+		if (obj == false)
 			return this;
-		}
 
 		obj.append(
 			ProxyNode.extractEl(this.element)
@@ -446,9 +425,8 @@ export class ProxyNode {
 	}
 
 	prependTo(obj: Extractable): this {
-		if (obj == null) {
+		if (obj == null)
 			return this;
-		}
 
 		obj.prepend(
 			ProxyNode.extractEl(this.element)
@@ -458,9 +436,8 @@ export class ProxyNode {
 	}
 
 	prepend(...objs: Extractable[]): this {
-		if (objs.length < 1) {
+		if (objs.length < 1)
 			return this;
-		}
 
 		for (const el of objs) {
 			if (Array.isArray(el)) {
@@ -471,11 +448,11 @@ export class ProxyNode {
 			}
 		}
 
-		for (const el of objs) {
+		for (const el of objs)
 			this.element.prepend(
 				ProxyNode.extractEl(el)
 			);
-		}
+
 
 		return this;
 	}
@@ -500,27 +477,21 @@ export class ProxyNode {
 		return this;
 	}
 
-	observer(
-		methods: import('./domObserver.js').Methods,
-		options?: import('./domObserver.js').Options
-	): this {
-		nodeObservers.create(this, methods, options);
-
-		return this;
-	}
-
 	setTabIndex(index: number): this {
 		if (typeof index == 'number') {
-			if (0 > index) {
+			if (0 > index)
 				this.element.removeAttribute('tabindex');
-			} else {
+
+			else
 				this.element.setAttribute('tabindex', '0');
-			}
 		}
 
 		return this;
 	}
 
+	/**
+	 * @deprecated - Possibly removed in the next version
+	 */
 	horizontalScrolling() {
 		this.on(
 			'wheel',

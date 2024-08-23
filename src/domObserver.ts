@@ -1,72 +1,46 @@
 import { v4 as uuidV4 } from 'uuid';
 import { ProxyNode } from './dom.js';
+import Emitter from '@orago/lib/emitter';
 
-export interface Options {
-	childList?: true;
-	subtree?: true;
-	killOnRemove?: boolean;
-}
-
-export interface Methods {
-	onAdd?: Function;
-	onRemove?: Function;
-}
-
-class ObservableNode {
-	parent;
-	id: string;
-	node: ProxyNode;
-	methods: Methods;
+export class ObservableNode {
+	events = new Emitter();
+	id: string = uuidV4();
 	inDom: boolean;
-	options: Options;
+	killOnRemove: boolean = false;
 
 	constructor(
-		parent: ObserverGroup,
-		domNode: ProxyNode,
-		methods: Methods,
-		options?: Options
+		public group: ObserverGroup,
+		private node: ProxyNode
 	) {
-		if (typeof options != 'object') {
-			options = {};
-		}
-
-		options.childList ??= true;
-		options.subtree ??= true;
-		options.killOnRemove ??= true;
-
-		this.id = uuidV4();
-		this.node = domNode;
-		this.methods = methods;
+		this.node = node;
 		this.inDom = document.body.contains(this.node.element);
-		this.options = options;
 
-		this.parent = parent;
-		this.parent.alive.set(this.id, this);
+		this.group = group;
+		this.group.alive.set(this.id, this);
 	}
 
 	handleMutation() {
 		// If it's in dom now but wasn't before
 		if (document.body.contains(this.node.element)) {
-			if (this.inDom != true && typeof this.methods.onAdd === 'function') {
-				this.methods.onAdd(this.node);
-			}
+			if (this.inDom != true)
+				this.events.emit('append', this.node);
 
 			this.inDom = true;
-		} else if (this.inDom) { /* Was in dom but removed */
-			this.handleRemove();
+		}
+
+		/* Was in dom but removed */
+		else if (this.inDom) {
+			this.inDom = false;
+
+			this.events.emit('remove', this.node);
+
+			if (this.killOnRemove == true)
+				this.kill();
 		}
 	}
 
-	handleRemove() {
-		this.inDom = false;
-
-		if (typeof this.methods.onRemove === 'function') {
-			this.methods.onRemove(this.node);
-		}
-
-		if (this.options.killOnRemove == true) {
-			this.parent.alive.delete(this.id);
-		}
+	kill() {
+		this.group.alive.delete(this.id);
 	}
 }
 
@@ -75,19 +49,14 @@ export class ObserverGroup {
 
 	constructor() {
 		const mainObserver = new MutationObserver(() => {
-			for (const observer of this.alive.values()) {
+			for (const observer of this.alive.values())
 				observer.handleMutation();
-			}
 		});
 
 		mainObserver.observe(document.body, { childList: true, subtree: true });
 	}
 
-	create(
-		node: ProxyNode,
-		methods: Methods,
-		options?: Options
-	) {
-		new ObservableNode(this, node, methods, options);
+	create(node: ProxyNode) {
+		return new ObservableNode(this, node);
 	}
 }

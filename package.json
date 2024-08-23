@@ -1,21 +1,26 @@
 {
 	"name": "@orago/dom",
-	"version": "0.0.9",
+	"version": "0.0.13",
 	"description": "Orago's Game library",
 	"type": "module",
-	"main": "esm/dom.js",
+	"main": "dist/dom.js",
 	"scripts": {
 		"pre-publish": "npm run build",
-		"build": "npm run build-cjs & npm run build-esm",
-		"build-cjs": "npx tsc --module commonjs --outDir cjs/",
-		"build-esm": "npx tsc --module es2022 --outDir esm/",
+		"build": "npm run build:clean && npm run build-cjs & npm run build-esm & npm run build-umd & npm run build-browser-esm & npm run build-browser-umd",
+		"build:clean": "rimraf dist/",
+		"build-cjs": "npx tsc --module commonjs --outDir dist/cjs/ --declarationDir dist/cjs",
+		"build-esm": "npx tsc --module es2022 --outDir dist/esm/ --declarationDir dist/esm",
+		"build-umd": "npx tsc --module umd --outDir dist/umd/ --declarationDir dist/umd",
+		"build-browser-esm": "rollup --config rollup.config.browser.esm.js --configPlugin typescript",
+		"build-browser-umd": "rollup --config rollup.config.browser.umd.js --configPlugin typescript",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"exports": {
 		".": {
 			"default": {
-				"import": "./esm/dom.js",
-				"require": "./cjs/dom.js"
+				"import": "./dist/esm/dom.js",
+				"require": "./dist/cjs/dom.js",
+				"types": "./dist/types/dom.d.ts"
 			}
 		}
 	},
@@ -26,7 +31,11 @@
 		"uuid": "^9.0.1"
 	},
 	"devDependencies": {
+		"@rollup/plugin-node-resolve": "^15.2.3",
+		"@rollup/plugin-typescript": "^11.1.6",
 		"@types/uuid": "^9.0.8",
+		"rollup": "^4.18.1",
+		"tslib": "^2.6.3",
 		"typescript": "^5.3.3"
 	}
 }
