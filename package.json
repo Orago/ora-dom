@@ -1,8 +1,9 @@
 {
 	"name": "@orago/dom",
-	"version": "0.0.17",
+	"version": "0.0.16",
 	"description": "Orago's Game library",
 	"type": "module",
+	"main": "dist/esm/dom.js",
 	"scripts": {
 		"pre-publish": "npm run build",
 		"build": "npm run build:clean && npm run build-cjs & npm run build-esm & npm run build-umd & npm run build-browser-esm & npm run build-browser-umd",
@@ -16,16 +17,18 @@
 	},
 	"exports": {
 		".": {
-			"import": "./dist/esm/dom.js",
-			"require": "./dist/cjs/dom.js",
-			"types": "./dist/types/dom.d.ts"
-		}
-	},
-	"typesVersions": {
-		"*": {
-			"*": [
-				"./src/*"
-			]
+			"default": {
+				"import": "./dist/esm/dom.js",
+				"require": "./dist/cjs/dom.js",
+				"types": "./dist/types/dom.d.ts"
+			}
+		},
+		"./*": {
+			"default": {
+				"import": "./dist/esm/*.js",
+				"require": "./dist/cjs/*.js",
+				"types": "./dist/types/*.d.ts"
+			}
 		}
 	},
 	"author": "Orago",
