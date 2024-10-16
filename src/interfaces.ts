@@ -14,7 +14,6 @@ export type StyleDeclarationWithProps = StyleDeclaration & {
 
 export interface DomAnimationOptions {
 	save?: boolean;
-
 	onFinish?: ((this: Animation, ev?: Event) => any);
 	onCancel?: ((this: Animation, ev?: Event) => any);
 	onRemove?: ((this: Animation, ev?: Event) => any);

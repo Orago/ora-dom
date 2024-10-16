@@ -3,13 +3,14 @@ import type {
 	StyleDeclaration,
 	StyleDeclarationWithProps,
 	DomAnimationOptions
-} from './types.d.ts';
+} from './interfaces.js';
+
 import { ObservableNode, ObserverGroup } from './domObserver.js';
 
 export type {
 	StyleDeclaration,
 	StyleDeclarationWithProps
-} from './types.d.ts';
+} from './interfaces.js';
 
 export const nodeObservers = new ObserverGroup();
 
@@ -26,11 +27,11 @@ export class ProxyNode {
 		return el instanceof ProxyNode;
 	}
 
-	data: any = {};
-	privateData: any = {};
+	// private data: any = {};
+	// private privateData: any = {};
 	element: Element;
 	listeners: { [key: string]: { [listener: string]: ReturnType<Function['bind']>; }; } = {};
-	events?: Emitter;
+	nodeEvents: Emitter = new Emitter();
 	private _observer?: ObservableNode;
 
 	get call() {
@@ -280,7 +281,7 @@ export class ProxyNode {
 	//#endregion //* Styles *//
 
 	private get safeEvents() {
-		return this.events ??= new Emitter();
+		return this.nodeEvents ??= new Emitter();
 	}
 
 	//#region //* Listeners *//
