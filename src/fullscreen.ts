@@ -1,9 +1,11 @@
 export function enterFullscreen(element: HTMLElement) {
-	if (element.requestFullscreen) /* Default */
+	if (element.requestFullscreen) {
+		/* Default */
 		element.requestFullscreen();
+	}
 
 	// else if (element.webkitRequestFullscreen) /* Safari  */
-	// 	element.webkitRequestFullscreen(); 
+	// 	element.webkitRequestFullscreen();
 
 	// else if (element.mozRequestFullscreen) /* Firefox */
 	// 	element.mozRequestFullscreen();
@@ -15,8 +17,9 @@ export function enterFullscreen(element: HTMLElement) {
 }
 
 export function exitFullscreen() {
-	if (document.exitFullscreen) /* Default */
+	if (document.exitFullscreen) {
 		document.exitFullscreen();
+	}
 
 	// else if (document?.webkitExitFullscreen) /* Safari */
 	// 	document.webkitExitFullscreen();
@@ -29,10 +32,10 @@ export function exitFullscreen() {
 }
 
 export function isElementFullscreen(element: HTMLElement) {
-	return (
-		document.fullscreenElement === element //||
-		// document?.webkitFullscreenElement === element ||
-		// document?.mozFullscreenElement === element ||
-		// document?.msFullscreenElement === element
-	);
+	return document.fullscreenElement === element;
+
+	//||
+	// document?.webkitFullscreenElement === element ||
+	// document?.mozFullscreenElement === element ||
+	// document?.msFullscreenElement === element
 }

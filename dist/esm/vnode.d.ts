@@ -1,0 +1,39 @@
+import { Emitter } from "@orago/lib";
+import type { StyleDeclarationWithProps, VN_Extractable, VNodeAppendable } from "./interfaces.js";
+import { ProxyNode } from "./proxynode.js";
+import { VNodeClasses, VNodeEvents, VNodeStyle } from "./vnode_extras.js";
+export declare class VNode {
+    static indexing: Map<any, any>;
+    static new: Record<string, VNode>;
+    static from(el: Element | string | VNode | ProxyNode): VNode;
+    static extractEl(node: VN_Extractable): HTMLElement;
+    static send_events: boolean;
+    static events: Emitter<{
+        create: (node: VNode) => void;
+        remove: (node: VNode) => void;
+    }, true>;
+    element: HTMLElement;
+    style: VNodeStyle;
+    class: VNodeClasses;
+    events: VNodeEvents;
+    constructor(element: keyof HTMLElementTagNameMap | (string & {}) | VN_Extractable);
+    attr(attributes?: Record<string, string | number>): this;
+    swap(node: VN_Extractable): this;
+    id(value: string): this;
+    id(value: undefined): string;
+    append(...objs: VNodeAppendable): this;
+    prepend(...objs: VNodeAppendable): this;
+    appendTo(obj: VN_Extractable | false, direction?: "append" | "prepend"): this;
+    getBounds(): DOMRect;
+    value(value: string): this;
+    value(value: undefined): string;
+    focus(): this;
+    ref(run: (arg0: this) => void): this;
+    remove(): this;
+    setContent(...content: any[]): this;
+    clear(): this;
+    setStyles(styles: StyleDeclarationWithProps): this;
+    setClasses(...classes: string[]): this;
+    inDom(parent?: HTMLElement): boolean;
+    scroll(x?: number, y?: number): this;
+}

@@ -1,21 +1,24 @@
-import Emitter from '@orago/lib/emitter';
-import type { StyleDeclaration, StyleDeclarationWithProps, DomAnimationOptions } from './interfaces.js';
-import { ObserverGroup } from './domObserver.js';
-export type { StyleDeclaration, StyleDeclarationWithProps } from './interfaces.js';
-export declare const nodeObservers: ObserverGroup;
-type Extractable = ProxyNode | Element;
+import Emitter from "@orago/lib/emitter";
+import type { DomAnimationOptionsOld, StyleDeclaration, StyleDeclarationWithProps, VNodeListeners } from "./interfaces.js";
+import { ObserverTracking } from "./dom_observer.js";
+import { VNode } from "./vnode.js";
+type PN_Extractable = ProxyNode | VNode | HTMLElement;
+type ProxyNodeEvents = {
+    append: () => void;
+    remove: () => void;
+};
+type NewNode = Record<string, ProxyNode>;
 export declare class ProxyNode {
-    static extractEl(node: Extractable): Element;
+    private static stored_listeners;
+    private static weak_events;
+    static tracking: ObserverTracking;
+    static getEvents(element: HTMLElement): Emitter<ProxyNodeEvents>;
+    static extractEl(node: PN_Extractable): HTMLElement;
     static isNode(el: ProxyNode | any): boolean;
-    element: Element;
-    listeners: {
-        [key: string]: {
-            [listener: string]: ReturnType<Function['bind']>;
-        };
-    };
-    nodeEvents: Emitter;
-    private _observer?;
-    get call(): this;
+    private static getCallbacksGroup;
+    private static getListeners;
+    element: HTMLElement;
+    listeners: VNodeListeners;
     constructor(el: Element | string | ProxyNode);
     get focused(): boolean;
     get childFocused(): boolean;
@@ -23,7 +26,7 @@ export declare class ProxyNode {
     get parent(): ProxyNode | undefined;
     get value(): string;
     set value(value: string);
-    get wrapper(): this['ref'];
+    get wrapper(): this["ref"];
     ref(run: (arg0: this) => void): this;
     text(content: string): this;
     id(value: string): this;
@@ -34,8 +37,8 @@ export declare class ProxyNode {
     clone(): ProxyNode;
     clear(): this;
     exists(): boolean;
-    getChildren(): Array<ProxyNode>;
-    reset(...toReset: ('content' | 'style' | 'class')[]): this;
+    getChildren(): ProxyNode[];
+    reset(...to_reset: ("content" | "style" | "class")[]): this;
     class(...args: string[]): this;
     hasClass(className: string): boolean;
     addClass(...args: string[]): this;
@@ -43,8 +46,10 @@ export declare class ProxyNode {
     toggleClass(className: string, status?: boolean): this;
     styles(styles?: StyleDeclarationWithProps): this;
     removeStyles(...styles: string[]): this;
-    private get safeEvents();
+    getEvents(): Emitter<ProxyNodeEvents, false>;
     on(event: string, callback: Function): this;
+    off(event: string, callback?: Function): this;
+    once(event: string, callback: Function): this;
     addListener(events: {
         [key: string]: {
             [listener: string]: Function;
@@ -54,25 +59,22 @@ export declare class ProxyNode {
     interval(callback: Function, time?: number, immediate?: boolean): this;
     remove(): this;
     setContent(...content: any[]): this;
-    append(...objs: (Extractable | false | string | Array<Extractable | false | string>)[]): this;
-    appendTo(obj: Extractable | false): this;
-    prependTo(obj: Extractable): this;
-    prepend(...objs: Extractable[]): this;
+    append(...objs: (PN_Extractable | false | string | (PN_Extractable | false | string)[])[]): this;
+    appendTo(obj: PN_Extractable | false): this;
+    prependTo(obj: PN_Extractable): this;
+    prepend(...objs: PN_Extractable[]): this;
     focus(): this;
     scroll(x?: number, y?: number): this;
     setTabIndex(index: number): this;
     horizontalScrolling(): this;
-    animate(styles: Array<StyleDeclaration>, options: number | (KeyframeAnimationOptions & DomAnimationOptions)): this;
+    animate(styles: Array<StyleDeclaration>, options: number | (KeyframeAnimationOptions & DomAnimationOptionsOld)): this;
 }
 export declare function generateProxyNode(el: HTMLElement | Element): ProxyNode;
-type newNode = {
-    [elementTag: string]: ProxyNode;
-};
-export declare const newNode: newNode;
+export declare const newNode: NewNode;
 export declare function qs(selector: string, element?: HTMLElement | Document): ProxyNode | null;
-export declare function qsAll(selector: string, element?: HTMLElement | Document): Array<ProxyNode>;
+export declare function qsAll(selector: string, element?: HTMLElement | Document): ProxyNode[];
 declare const _default: {
-    newNode: newNode;
+    newNode: NewNode;
     qs: typeof qs;
     generateProxyNode: typeof generateProxyNode;
     fetch: typeof fetch;

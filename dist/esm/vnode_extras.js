@@ -1,0 +1,191 @@
+import { Emitter } from "@orago/lib";
+import { SubMap } from "./submap.js";
+import { P_VNodeUtil } from "./utilities.js";
+export function valueTrap(obj, property, callback) {
+    Object.defineProperty(obj, property, {
+        configurable: true,
+        get() {
+            const value = callback();
+            Object.defineProperty(obj, property, {
+                value,
+                writable: false,
+                configurable: false,
+                enumerable: true,
+            });
+            return value;
+        },
+    });
+}
+class VNodeAnimation {
+    constructor(node, styles, options) {
+        this.node = node;
+        this.node = node;
+        this.animation = this.node.element.animate(styles, options.animation);
+        const use_reverse = options.animation.direction == "reverse" ||
+            options.animation.direction == "alternate-reverse";
+        const end_index = use_reverse ? 0 : styles.length - 1;
+        if (typeof options === "object") {
+            this.animation.addEventListener("finish", () => {
+                if (options.save === true) {
+                    P_VNodeUtil.setStyles(this.node.element, styles[end_index]);
+                }
+            });
+        }
+    }
+}
+class VNodeUtilityClass {
+    constructor(node) {
+        this.node = node;
+        this.node = node;
+    }
+    nest(run) {
+        run(this);
+        return this.node;
+    }
+}
+export class VNodeStyle extends VNodeUtilityClass {
+    update(styles = {}) {
+        P_VNodeUtil.setStyles(this.node.element, styles);
+        return this;
+    }
+    remove(...styles) {
+        P_VNodeUtil.removeStyles(this.node.element, styles);
+        return this;
+    }
+    animate(styles, options) {
+        return new VNodeAnimation(this.node, styles, options);
+    }
+}
+export class VNodeClasses extends VNodeUtilityClass {
+    static addClasses(element, args) {
+        for (const arg of args) {
+            if (arg.includes(" ")) {
+                args.splice(args.indexOf(arg), 1, ...arg.split(" "));
+            }
+            else if (Array.isArray(arg)) {
+                args.splice(args.indexOf(arg), 1, ...arg);
+            }
+        }
+        if (Array.isArray(args)) {
+            element.classList.add(...args);
+        }
+    }
+    static removeClasses(element, args) {
+        for (const arg of args) {
+            if (arg.includes(" ")) {
+                args.splice(args.indexOf(arg), 1, ...arg.split(" "));
+            }
+        }
+        if (Array.isArray(args)) {
+            element.classList.remove(...args);
+        }
+    }
+    has(class_name) {
+        return this.node.element.classList.contains(class_name);
+    }
+    add(...classes) {
+        VNodeClasses.addClasses(this.node.element, classes);
+        return this;
+    }
+    remove(...classes) {
+        VNodeClasses.removeClasses(this.node.element, classes);
+        return this;
+    }
+    set(...classes) {
+        this.node.element.className = classes.join(" ");
+        return this;
+    }
+    toggleClass(class_name, status = !this.has(class_name)) {
+        if (status) {
+            this.add(class_name);
+        }
+        else {
+            this.remove(class_name);
+        }
+        return this;
+    }
+}
+export class VNodeEvents extends VNodeUtilityClass {
+    static getEvents(element) {
+        const existing = VNodeEvents.weak_events.get(element);
+        if (existing) {
+            return existing;
+        }
+        else {
+            const emitter = new Emitter();
+            VNodeEvents.weak_events.set(element, emitter);
+            return emitter;
+        }
+    }
+    static getCallbacksGroup(element) {
+        const got = VNodeEvents.stored_listeners.get(element);
+        if (got) {
+            return got;
+        }
+        else {
+            const submap = new SubMap();
+            VNodeEvents.stored_listeners.set(element, submap);
+            return submap;
+        }
+    }
+    static on(element, event, callback) {
+        if (VNodeEvents.reserved_events.includes(event)) {
+            VNodeEvents.getEvents(element).on(event, callback);
+        }
+        else {
+            if (event == "keypress" || event == "keydown" || event == "keyup") {
+                P_VNodeUtil.attr(element, { tabIndex: 0 });
+            }
+            VNodeEvents.getCallbacksGroup(element).add(event, callback);
+            element.addEventListener(event, callback);
+        }
+    }
+    static off(element, event, callback) {
+        if (VNodeEvents.reserved_events.includes(event)) {
+            VNodeEvents.getEvents(element).off(event, callback);
+        }
+        else {
+            const group = VNodeEvents.getCallbacksGroup(element);
+            if (callback) {
+                group.remove(event, callback);
+                element.removeEventListener(event, callback);
+            }
+            else {
+                for (const callback of group.get(event)) {
+                    element.removeEventListener(event, callback);
+                }
+                group.removeAll(event);
+            }
+        }
+    }
+    static once(element, event, callback) {
+        const once_callback = (...args) => {
+            this.off(element, event, once_callback);
+            callback(...args);
+            return void 0;
+        };
+        this.on(element, event, (...args) => once_callback(...args));
+    }
+    constructor(node) {
+        super(node);
+        this.element = this.node.element;
+    }
+    on(event, callback) {
+        VNodeEvents.on(this.element, event, callback);
+        return this;
+    }
+    off(event, callback) {
+        VNodeEvents.off(this.element, event, callback);
+        return this;
+    }
+    once(event, callback) {
+        VNodeEvents.once(this.element, event, callback);
+        return this;
+    }
+}
+VNodeEvents.reserved_events = [
+    "append",
+    "remove",
+];
+VNodeEvents.stored_listeners = new WeakMap();
+VNodeEvents.weak_events = new WeakMap();
