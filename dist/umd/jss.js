@@ -4,12 +4,13 @@
         if (v !== undefined) module.exports = v;
     }
     else if (typeof define === "function" && define.amd) {
-        define(["require", "exports"], factory);
+        define(["require", "exports", "@orago/lib"], factory);
     }
 })(function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.JCSS = void 0;
+    const lib_1 = require("@orago/lib");
     function camelToKebab(str) {
         return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
     }
@@ -49,6 +50,10 @@
             this.indexes = new Map();
             this.list = new Map();
             this.manager = manager;
+        }
+        call(run) {
+            run(this);
+            return this;
         }
         has(name) {
             return this.list.has(name);
@@ -91,6 +96,10 @@
             this.list = new Map();
             this.manager = manager;
         }
+        call(run) {
+            run(this);
+            return this;
+        }
         has(name) {
             return this.list.has(name);
         }
@@ -127,14 +136,15 @@
     class JCSS {
         constructor() {
             this.element = document.createElement("style");
-            this.styles = new JCSSClassManager(this);
-            this.animations = new JCSSAnimationManager(this);
+            this.style = (0, lib_1.makeCallableClass)(JCSSClassManager, this);
+            this.animation = (0, lib_1.makeCallableClass)(JCSSAnimationManager, this);
             this.inserted_state = false;
         }
         insert() {
             if (this.inserted_state == false) {
                 document.head.appendChild(this.element);
                 this.inserted_state = document.head.contains(this.element);
+                this.rebuild();
             }
             return this;
         }
@@ -144,10 +154,10 @@
             return this;
         }
         rebuild() {
-            const classes_string = Array.from(this.styles.list.values())
+            const classes_string = Array.from(this.style.list.values())
                 .map((instance) => instance.toString())
                 .join("\n");
-            const animations_string = Array.from(this.animations.list.values())
+            const animations_string = Array.from(this.animation.list.values())
                 .map((instance) => instance.toString())
                 .join("\n");
             const result = [classes_string, animations_string].join(" ");
@@ -158,7 +168,7 @@
             function selectAndCount(e) {
                 return document.querySelectorAll(e.name).length;
             }
-            return Array.from(this.styles.list.values())
+            return Array.from(this.style.list.values())
                 .map(selectAndCount)
                 .reduce((accumulator, current) => accumulator + current, 0);
         }

@@ -20,6 +20,6 @@ export interface VNodeAnimationOptions {
 }
 type Kuh = Record<string, ReturnType<Function["bind"]>>;
 export type VNodeListeners = Record<string, Kuh>;
-export type VN_Extractable = HTMLElement | VNode | ProxyNode;
-export type VNodeAppendable = (VN_Extractable | false | string)[];
+export type VNodeExtractable = HTMLElement | VNode | ProxyNode;
+export type VNodeAppendable = (VNodeExtractable | false | string | (VNodeExtractable | false | string)[])[];
 export {};

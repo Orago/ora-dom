@@ -1,71 +1,13 @@
-import { ProxyNode } from "./proxynode.js";
-import Emitter from "@orago/lib/emitter";
+import { Emitter } from "@orago/lib";
 
-export class ObservableNode {
-	private static ids: number = 0;
-
-	events: Emitter<{
-		append: (node: ProxyNode) => void;
-		remove: (node: ProxyNode) => void;
-	}> = new Emitter();
-
-	id: number = ++ObservableNode.ids;
-	inDom: boolean;
-	killOnRemove: boolean = false;
-
-	constructor(public group: ObserverGroup, private node: ProxyNode) {
-		this.node = node;
-		this.inDom = document.body.contains(this.node.element);
-
-		this.group = group;
-		this.group.alive.set(this.id, this);
-	}
-
-	handleMutation() {
-		// If it's in dom now but wasn't before
-		if (document.body.contains(this.node.element)) {
-			if (this.inDom != true) {
-				this.events.emit("append", this.node);
-			}
-
-			this.inDom = true;
-		} else if (this.inDom) {
-			/* Was in dom but removed */
-			this.inDom = false;
-
-			this.events.emit("remove", this.node);
-
-			if (this.killOnRemove == true) {
-				this.kill();
-			}
-		}
-	}
-
-	kill() {
-		this.group.alive.delete(this.id);
-	}
-}
-
-export class ObserverGroup {
-	alive = new Map();
-
-	constructor() {
-		const main_observer = new MutationObserver(() => {
-			for (const observer of this.alive.values()) {
-				observer.handleMutation();
-			}
-		});
-
-		main_observer.observe(document.body, { childList: true, subtree: true });
-	}
-
-	create(node: ProxyNode) {
-		return new ObservableNode(this, node);
-	}
-}
+type ObservedCallback = () => void;
+type ObserverNodeEvents = {
+	append: ObservedCallback;
+	remove: ObservedCallback;
+};
 
 export class ObserverTracking {
-	static inDom(element: HTMLElement) {
+	private static inDom(element: HTMLElement) {
 		return this.tracked_in_dom.get(element) == true;
 	}
 
@@ -73,33 +15,103 @@ export class ObserverTracking {
 		// If it's in dom now but wasn't before
 		if (document.body.contains(element)) {
 			if (this.inDom(element) != true) {
-				ProxyNode.getEvents(element)?.emit("append");
+				this.getEvents(element)?.emit("append");
 			}
 
 			this.tracked_in_dom.set(element, true);
 		} else if (this.inDom(element)) {
 			/* Was in dom but removed */
 			this.tracked_in_dom.set(element, false);
-			ProxyNode.getEvents(element)?.emit("remove");
+			this.getEvents(element)?.emit("remove");
 		}
 	}
 
+	private static getEvents(
+		element: HTMLElement
+	): Emitter<ObserverNodeEvents> {
+		const existing = this.weak_events.get(element);
+
+		if (existing) {
+			return existing;
+		} else {
+			const emitter = new Emitter<ObserverNodeEvents>();
+			this.weak_events.set(element, emitter);
+			return emitter;
+		}
+	}
+
+	private static weak_events: WeakMap<
+		HTMLElement,
+		Emitter<ObserverNodeEvents>
+	> = new WeakMap();
+
 	private static tracked_in_dom: WeakMap<HTMLElement, boolean> =
 		new WeakMap();
+	private wrap_map: Map<ObservedCallback, ObservedCallback> = new Map();
 
 	list = new Set<HTMLElement>();
 	observer: MutationObserver;
+	events: Emitter<
+		{
+			append: ObservedCallback;
+			remove: ObservedCallback;
+			any: () => void;
+		},
+		true
+	> = new Emitter();
 
 	constructor() {
 		this.observer = new MutationObserver(() => {
 			for (const element of this.list) {
 				ObserverTracking.handle(element);
 			}
+
+			this.events.emit("any");
 		});
 
 		this.observer.observe(document.body, {
 			childList: true,
 			subtree: true,
 		});
+	}
+	private cleanupElement(element: HTMLElement) {
+		// Do cleanup
+		if (ObserverTracking.getEvents(element).all.size == 0) {
+			this.list.delete(element);
+		}
+	}
+
+	on(
+		element: HTMLElement,
+		event: "append" | "remove",
+		callback: ObservedCallback
+	) {
+		this.list.add(element);
+		ObserverTracking.getEvents(element).on(event, callback);
+		return this;
+	}
+
+	off(
+		element: HTMLElement,
+		event: "append" | "remove",
+		callback?: ObservedCallback
+	) {
+		ObserverTracking.getEvents(element).off(event, callback);
+		this.cleanupElement(element);
+		return this;
+	}
+
+	once(
+		element: HTMLElement,
+		event: "append" | "remove",
+		callback: ObservedCallback
+	) {
+		this.list.add(element);
+
+		ObserverTracking.getEvents(element)
+			.once(event, callback)
+			.once(event, () => this.cleanupElement(element));
+
+		return this;
 	}
 }

@@ -6,9 +6,8 @@ import type {
 	VNodeListeners,
 } from "./interfaces.js";
 
-import { ObserverTracking } from "./dom_observer.js";
 import { SubMap } from "./submap.js";
-import { PNodeUtil } from "./utilities.js";
+import { PNodeUtil, VNodeExtractEl } from "./utilities.js";
 import { VNode } from "./vnode.js";
 
 // export type {
@@ -33,6 +32,46 @@ type NewNode = Record<string, ProxyNode>;
 
 let reserved_events: (ReservedEvents | (string & {}))[] = ["append", "remove"];
 
+export class ProxynodeTracking {
+	static inDom(element: HTMLElement) {
+		return this.tracked_in_dom.get(element) == true;
+	}
+
+	static handle(element: HTMLElement) {
+		// If it's in dom now but wasn't before
+		if (document.body.contains(element)) {
+			if (this.inDom(element) != true) {
+				ProxyNode.getEvents(element)?.emit("append");
+			}
+
+			this.tracked_in_dom.set(element, true);
+		} else if (this.inDom(element)) {
+			/* Was in dom but removed */
+			this.tracked_in_dom.set(element, false);
+			ProxyNode.getEvents(element)?.emit("remove");
+		}
+	}
+
+	private static tracked_in_dom: WeakMap<HTMLElement, boolean> =
+		new WeakMap();
+
+	list = new Set<HTMLElement>();
+	observer: MutationObserver;
+
+	constructor() {
+		this.observer = new MutationObserver(() => {
+			for (const element of this.list) {
+				ProxynodeTracking.handle(element);
+			}
+		});
+
+		this.observer.observe(document.body, {
+			childList: true,
+			subtree: true,
+		});
+	}
+}
+
 export class ProxyNode {
 	private static stored_listeners: WeakMap<HTMLElement, SubMap> =
 		new WeakMap();
@@ -40,7 +79,7 @@ export class ProxyNode {
 		new WeakMap();
 	// private static qs = qs;
 	// private static qsAll = qsAll;
-	public static tracking = new ObserverTracking();
+	public static tracking = new ProxynodeTracking();
 
 	static getEvents(element: HTMLElement): Emitter<ProxyNodeEvents> {
 		const existing = ProxyNode.weak_events.get(element);
@@ -54,13 +93,15 @@ export class ProxyNode {
 		}
 	}
 
-	static extractEl(node: PN_Extractable): HTMLElement {
-		if (node instanceof ProxyNode || node instanceof VNode) {
-			return node.element;
-		} else {
-			return node;
-		}
-	}
+	static extractEl = VNodeExtractEl;
+
+	// static extractEl(node: PN_Extractable): HTMLElement {
+	// 	if (node instanceof ProxyNode || node instanceof VNode) {
+	// 		return node.element;
+	// 	} else {
+	// 		return node;
+	// 	}
+	// }
 
 	static isNode(el: ProxyNode | any): boolean {
 		return el instanceof ProxyNode;

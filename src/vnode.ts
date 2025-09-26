@@ -1,38 +1,63 @@
-import { Emitter } from "@orago/lib";
+import { Emitter, makeCallableClass, trapValue } from "@orago/lib";
 import type {
 	StyleDeclarationWithProps,
-	VN_Extractable,
+	VNodeExtractable,
 	VNodeAppendable,
+	VNodeElementName,
 } from "./interfaces.js";
 import { ProxyNode } from "./proxynode.js";
-import { P_VNodeUtil, VNodeUtilExtend } from "./utilities.js";
-import {
-	valueTrap,
-	VNodeClasses,
-	VNodeEvents,
-	VNodeStyle,
-} from "./vnode_extras.js";
+import { P_VNodeUtil, VNodeExtractEl } from "./utilities.js";
+import { VNodeClasses, VNodeEvents, VNodeStyle } from "./vnode_extras.js";
 
 export class VNode {
-	public static Util = VNodeUtilExtend;
+	public static Util = class VNodeUtilExtend {
+		public static qs(
+			selector: string,
+			element: HTMLElement | Document = document
+		): VNode | null {
+			const current = element.querySelector(selector);
+
+			return current ? new VNode(current as HTMLElement) : null;
+		}
+
+		public static qsAll(
+			selector: string,
+			element: HTMLElement | Document = document
+		): VNode[] {
+			return Array.from(element.querySelectorAll(selector)).map(
+				(current) => {
+					return new VNode(current as HTMLElement);
+				}
+			);
+		}
+
+		public static extractEl = VNodeExtractEl;
+
+		public static getChildren(extractable: VNodeExtractable): VNode[] {
+			const extracted = this.extractEl(extractable);
+
+			return Array.from(extracted.children).map(
+				(document_el) => new VNode(document_el as HTMLElement)
+			);
+		}
+	};
 
 	public static indexing = new Map();
 
 	/**
 	 * Replacement for 'newNode' on ProxyNode Utilities
 	 */
-	public static new: Record<string, VNode> = new Proxy(
+	public static new: Record<VNodeElementName, VNode> = new Proxy(
 		{},
 		{
 			get(target: object, element_tag: string): VNode {
 				return new VNode(document.createElement(element_tag));
-
 				// generateProxyNode(document.createElement(elementTag));
 			},
 		}
-	);
+	) as any;
 
-	public static from(el: Element | string | VNode | ProxyNode) {
+	public static from(el: VNodeElementName | VNodeExtractable) {
 		if (typeof el === "string") {
 			// this.element = document.createElement(el);
 			return new VNode(document.createElement(el));
@@ -53,13 +78,10 @@ export class VNode {
 		}
 	}
 
-	public static extractEl(node: VN_Extractable): HTMLElement {
-		if (node instanceof ProxyNode || node instanceof VNode) {
-			return node.element;
-		} else {
-			return node;
-		}
-	}
+	/**
+	 * @deprecated Use VNode.Util.extractEl
+	 */
+	public static extractEl = VNodeExtractEl;
 
 	public static send_events: boolean = false;
 
@@ -78,7 +100,10 @@ export class VNode {
 	 */
 	// public style = new VNodeStyle(this);
 	// public temp_style: VNodeStyle | undefined;
-	public style!: VNodeStyle; //= VNodeUtilTrap("style", this, () => new VNodeStyle(this));
+	// public style!: ReturnType<typeof makeCallableInstance<typeof VNodeStyle<this>>>; //= VNodeUtilTrap("style", this, () => new VNodeStyle(this));
+	public style!: ReturnType<
+		typeof makeCallableClass<typeof VNodeStyle<this>>
+	>; //= VNodeUtilTrap("style", this, () => new VNodeStyle(this));
 	// = createVNodeExtrasWrapperClosure(this, VNodeStyle);
 
 	/**
@@ -86,21 +111,24 @@ export class VNode {
 	 */
 	// public class = new VNodeClasses(this);
 	// public temp_class: VNodeClasses | undefined;
-	public class!: VNodeClasses;
+	// public class!: CallableUtilUnion<typeof VNodeClasses<this>>;
+	public class!: ReturnType<
+		typeof makeCallableClass<typeof VNodeClasses<this>>
+	>;
 
 	/**
 	 * Event manager
 	 */
 	// public events = new VNodeEvents(this);
 	// public temp_events: VNodeEvents | undefined;
-	public events!: VNodeEvents;
+	public events!: ReturnType<
+		typeof makeCallableClass<typeof VNodeEvents<this>>
+	>;
 
-	constructor(
-		element: keyof HTMLElementTagNameMap | (string & {}) | VN_Extractable
-	) {
-		valueTrap(this, "style", () => new VNodeStyle(this));
-		valueTrap(this, "class", () => new VNodeClasses(this));
-		valueTrap(this, "events", () => new VNodeEvents(this));
+	constructor(element: VNodeElementName | VNodeExtractable) {
+		trapValue(this, "style", () => makeCallableClass(VNodeStyle, this));
+		trapValue(this, "class", () => makeCallableClass(VNodeClasses, this));
+		trapValue(this, "events", () => makeCallableClass(VNodeEvents, this));
 
 		if (typeof element === "string") {
 			this.element = document.createElement(element);
@@ -118,7 +146,7 @@ export class VNode {
 		return this;
 	}
 
-	public swap(node: VN_Extractable): this {
+	public swap(node: VNodeExtractable): this {
 		const new_node = VNode.extractEl(node);
 
 		this.element.replaceWith(new_node);
@@ -148,7 +176,7 @@ export class VNode {
 	}
 
 	public appendTo(
-		obj: VN_Extractable | false,
+		obj: VNodeExtractable | false,
 		direction: "append" | "prepend" = "append"
 	): this {
 		if (obj == false) {
@@ -156,9 +184,9 @@ export class VNode {
 		}
 
 		if (direction === "append") {
-			obj.append(VNodeUtilExtend.extractEl(this.element));
+			obj.append(VNodeExtractEl(this.element));
 		} else {
-			obj.prepend(VNodeUtilExtend.extractEl(this.element));
+			obj.prepend(VNodeExtractEl(this.element));
 		}
 
 		return this;
@@ -168,14 +196,25 @@ export class VNode {
 		return this.element.getBoundingClientRect();
 	}
 
-	public value(value: string): this;
-	public value(value: undefined): string;
-	public value(value: string | undefined = undefined): any {
-		if (this.element instanceof HTMLInputElement) {
+	public value(): string;
+	public value(value: string | number): this;
+	public value(value: string | number | undefined = undefined): any {
+		if (
+			this.element instanceof HTMLInputElement ||
+			this.element instanceof HTMLSelectElement
+		) {
 			if (value == undefined) {
 				return this.element.value;
 			} else {
-				this.element.value = value;
+				this.element.value = value.toString();
+
+				return this;
+			}
+		} else if (this.element instanceof HTMLImageElement) {
+			if (value == undefined) {
+				return this.element.src;
+			} else {
+				this.element.src = value.toString();
 
 				return this;
 			}
@@ -183,7 +222,7 @@ export class VNode {
 			if (value == undefined) {
 				return this.element.textContent;
 			} else {
-				this.element.textContent = value;
+				this.element.textContent = value.toString();
 
 				return this;
 			}
@@ -255,3 +294,7 @@ export class VNode {
 		return this;
 	}
 }
+
+const gotten = VNode.new;
+
+gotten;

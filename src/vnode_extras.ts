@@ -2,34 +2,11 @@ import { Emitter } from "@orago/lib";
 import type {
 	StyleDeclaration,
 	VNodeAnimationOptions,
-	VNodeStyleDeclarationWithProps
+	VNodeStyleDeclarationWithProps,
 } from "./interfaces.js";
 import { SubMap } from "./submap.js";
 import { P_VNodeUtil } from "./utilities.js";
 import type { VNode } from "./vnode.js";
-
-export function valueTrap<OBJ extends any, P extends keyof OBJ>(
-	obj: OBJ,
-	property: P,
-	callback: () => OBJ[P]
-) {
-	Object.defineProperty(obj, property, {
-		configurable: true,
-		get() {
-			const value = callback();
-
-			Object.defineProperty(obj, property, {
-				value,
-				writable: false,
-				configurable: false,
-				enumerable: true,
-			});
-
-			return value;
-		},
-	});
-}
-
 class VNodeAnimation<T extends VNode> {
 	public animation: Animation;
 
@@ -61,8 +38,8 @@ class VNodeAnimation<T extends VNode> {
 	}
 }
 
-class VNodeUtilityClass {
-	constructor(public node: VNode) {
+class VNodeUtilityClass<T extends VNode = VNode> {
+	constructor(public node: T) {
 		this.node = node;
 	}
 
@@ -72,7 +49,25 @@ class VNodeUtilityClass {
 	}
 }
 
-export class VNodeStyle extends VNodeUtilityClass {
+export class VNodeStyle<T extends VNode> extends VNodeUtilityClass<T> {
+	public call(styles: VNodeStyleDeclarationWithProps): T;
+	public call(value: (arg0: this) => void): T;
+	public call(
+		value: VNodeStyleDeclarationWithProps | ((arg0: this) => void) = {}
+	): T {
+		if (typeof value == "object") {
+			return this.update(value).node;
+		} else if (typeof value == "function") {
+			return this.nest(value);
+		}
+
+		return this.node;
+	}
+
+	// public call(...args: Parameters<this["update"]>) {
+	// 	return this.update(...args).node;
+	// }
+
 	public update(styles: VNodeStyleDeclarationWithProps = {}) {
 		P_VNodeUtil.setStyles(this.node.element, styles);
 		return this;
@@ -91,7 +86,7 @@ export class VNodeStyle extends VNodeUtilityClass {
 	}
 }
 
-export class VNodeClasses extends VNodeUtilityClass {
+export class VNodeClasses<T extends VNode> extends VNodeUtilityClass<T> {
 	public static addClasses(element: HTMLElement, args: string[]): void {
 		for (const arg of args) {
 			if (arg.includes(" ")) {
@@ -118,6 +113,21 @@ export class VNodeClasses extends VNodeUtilityClass {
 		}
 	}
 
+	public call(...classes: string[]): T;
+	public call(nest: (arg0: this) => void): T;
+
+	public call(...value: string[] | [(arg0: this) => void]): T {
+		let [first] = value;
+
+		if (typeof first == "string") {
+			return this.set(...(value as string[])).node;
+		} else if (typeof first == "function") {
+			return this.nest(first);
+		}
+
+		return this.node;
+	}
+
 	public has(class_name: string): boolean {
 		return this.node.element.classList.contains(class_name);
 	}
@@ -137,10 +147,7 @@ export class VNodeClasses extends VNodeUtilityClass {
 		return this;
 	}
 
-	public toggleClass(
-		class_name: string,
-		status: boolean = !this.has(class_name)
-	) {
+	public toggle(class_name: string, status: boolean = !this.has(class_name)) {
 		if (status) {
 			this.add(class_name);
 		} else {
@@ -149,6 +156,16 @@ export class VNodeClasses extends VNodeUtilityClass {
 
 		return this;
 	}
+
+	/**
+	 * @deprecated
+	 */
+	public toggleClass(
+		class_name: string,
+		status: boolean = !this.has(class_name)
+	) {
+		return this.toggle(class_name, status);
+	}
 }
 
 type ReservedEvents = "append" | "remove";
@@ -156,7 +173,7 @@ type VNodeEventsT = {
 	append: () => void;
 	remove: () => void;
 };
-export class VNodeEvents extends VNodeUtilityClass {
+export class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
 	private static reserved_events: (ReservedEvents | (string & {}))[] = [
 		"append",
 		"remove",
@@ -246,9 +263,13 @@ export class VNodeEvents extends VNodeUtilityClass {
 
 	element: HTMLElement;
 
-	constructor(node: VNode) {
+	constructor(node: T) {
 		super(node);
 		this.element = this.node.element;
+	}
+
+	public call(...args: Parameters<VNodeEvents<this["node"]>["nest"]>) {
+		return this.nest(...args);
 	}
 
 	public on(event: string, callback: Function) {
@@ -266,4 +287,3 @@ export class VNodeEvents extends VNodeUtilityClass {
 		return this;
 	}
 }
-

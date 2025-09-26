@@ -1,9 +1,9 @@
 {
 	"name": "@orago/dom",
-	"version": "0.0.24",
+	"version": "0.0.41",
 	"description": "Orago's Game library",
 	"type": "module",
-	"main": "dist/esm/dom.js",
+	"main": "dist/esm/index.js",
 	"scripts": {
 		"pre-publish": "npm run build",
 		"build": "npm run build:clean && npm run build-cjs & npm run build-esm & npm run build-umd & npm run build-browser-esm & npm run build-browser-umd",
@@ -12,7 +12,7 @@
 		"build-esm": "npx tsc --module es2022 --outDir dist/esm/ --declarationDir dist/esm",
 		"build-umd": "npx tsc --module umd --outDir dist/umd/ --declarationDir dist/umd",
 		"build-browser-esm": "rollup --config rollup.config.browser.esm.js --configPlugin typescript --name oradom",
-		"build-browser-umd": "rollup --config rollup.config.browser.umd.js --configPlugin typescript --name oradom",
+		"build-browser-umd": "rollup --config rollup.config.browser.umd.js --configPlugin typescript --name oradom && rollup --config rollup.config.types.js --configPlugin typescript --name oradom",
 		"bb": "npm run build-browser-umd",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
@@ -35,7 +35,7 @@
 	"author": "Orago",
 	"license": "ISC",
 	"dependencies": {
-		"@orago/lib": "^0.0.29",
+		"@orago/lib": "0.0.31",
 		"uuid": "^9.0.1"
 	},
 	"devDependencies": {
@@ -43,6 +43,7 @@
 		"@rollup/plugin-typescript": "^11.1.6",
 		"@types/uuid": "^9.0.8",
 		"rollup": "^4.18.1",
+		"rollup-plugin-dts": "^6.2.1",
 		"tslib": "^2.6.3",
 		"typescript": "^5.3.3"
 	}

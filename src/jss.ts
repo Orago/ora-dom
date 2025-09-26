@@ -1,3 +1,5 @@
+import { makeCallableClass } from "@orago/lib";
+
 function camelToKebab(str: string): string {
 	return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 }
@@ -64,6 +66,12 @@ class JCSSClassManager {
 		this.manager = manager;
 	}
 
+	public call(run: (arg0: this) => void): this {
+		run(this);
+
+		return this;
+	}
+
 	public has(name: JssClass["name"]) {
 		return this.list.has(name);
 	}
@@ -114,6 +122,12 @@ class JCSSAnimationManager {
 		this.manager = manager;
 	}
 
+	public call(run: (arg0: this) => void): this {
+		run(this);
+
+		return this;
+	}
+
 	public has(name: JssAnimation["name"]) {
 		return this.list.has(name);
 	}
@@ -156,8 +170,11 @@ class JCSSAnimationManager {
 
 export class JCSS {
 	element: HTMLStyleElement = document.createElement("style");
-	styles = new JCSSClassManager(this);
-	animations = new JCSSAnimationManager(this);
+	style = makeCallableClass(JCSSClassManager, this);
+
+	// new JCSSClassManager(this);
+	// animations = new JCSSAnimationManager(this);
+	animation = makeCallableClass(JCSSAnimationManager, this);
 
 	inserted_state: boolean = false;
 
@@ -165,6 +182,7 @@ export class JCSS {
 		if (this.inserted_state == false) {
 			document.head.appendChild(this.element);
 			this.inserted_state = document.head.contains(this.element);
+			this.rebuild();
 		}
 
 		return this;
@@ -178,12 +196,12 @@ export class JCSS {
 	}
 
 	rebuild(): this {
-		const classes_string: string = Array.from(this.styles.list.values())
+		const classes_string: string = Array.from(this.style.list.values())
 			.map((instance) => instance.toString())
 			.join("\n");
 
 		const animations_string: string = Array.from(
-			this.animations.list.values()
+			this.animation.list.values()
 		)
 			.map((instance) => instance.toString())
 			.join("\n");
@@ -200,7 +218,7 @@ export class JCSS {
 			return document.querySelectorAll(e.name).length;
 		}
 
-		return Array.from(this.styles.list.values())
+		return Array.from(this.style.list.values())
 			.map(selectAndCount)
 			.reduce((accumulator, current) => accumulator + current, 0);
 	}

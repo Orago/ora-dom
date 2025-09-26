@@ -3,13 +3,43 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.qsAll = exports.qs = exports.newNode = exports.generateProxyNode = exports.ProxyNode = void 0;
+exports.qsAll = exports.qs = exports.newNode = exports.generateProxyNode = exports.ProxyNode = exports.ProxynodeTracking = void 0;
 const emitter_1 = __importDefault(require("@orago/lib/emitter"));
-const dom_observer_js_1 = require("./dom_observer.js");
 const submap_js_1 = require("./submap.js");
 const utilities_js_1 = require("./utilities.js");
-const vnode_js_1 = require("./vnode.js");
 let reserved_events = ["append", "remove"];
+class ProxynodeTracking {
+    static inDom(element) {
+        return this.tracked_in_dom.get(element) == true;
+    }
+    static handle(element) {
+        var _a, _b;
+        if (document.body.contains(element)) {
+            if (this.inDom(element) != true) {
+                (_a = ProxyNode.getEvents(element)) === null || _a === void 0 ? void 0 : _a.emit("append");
+            }
+            this.tracked_in_dom.set(element, true);
+        }
+        else if (this.inDom(element)) {
+            this.tracked_in_dom.set(element, false);
+            (_b = ProxyNode.getEvents(element)) === null || _b === void 0 ? void 0 : _b.emit("remove");
+        }
+    }
+    constructor() {
+        this.list = new Set();
+        this.observer = new MutationObserver(() => {
+            for (const element of this.list) {
+                ProxynodeTracking.handle(element);
+            }
+        });
+        this.observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
+    }
+}
+exports.ProxynodeTracking = ProxynodeTracking;
+ProxynodeTracking.tracked_in_dom = new WeakMap();
 class ProxyNode {
     static getEvents(element) {
         const existing = ProxyNode.weak_events.get(element);
@@ -20,14 +50,6 @@ class ProxyNode {
             const emitter = new emitter_1.default();
             ProxyNode.weak_events.set(element, emitter);
             return emitter;
-        }
-    }
-    static extractEl(node) {
-        if (node instanceof ProxyNode || node instanceof vnode_js_1.VNode) {
-            return node.element;
-        }
-        else {
-            return node;
         }
     }
     static isNode(el) {
@@ -382,7 +404,8 @@ class ProxyNode {
 exports.ProxyNode = ProxyNode;
 ProxyNode.stored_listeners = new WeakMap();
 ProxyNode.weak_events = new WeakMap();
-ProxyNode.tracking = new dom_observer_js_1.ObserverTracking();
+ProxyNode.tracking = new ProxynodeTracking();
+ProxyNode.extractEl = utilities_js_1.VNodeExtractEl;
 function generateProxyNode(el) {
     return new ProxyNode(el);
 }

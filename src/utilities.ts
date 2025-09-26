@@ -1,9 +1,17 @@
 import type {
-	VN_Extractable,
-	VNodeStyleDeclarationWithProps
+	VNodeExtractable,
+	VNodeStyleDeclarationWithProps,
 } from "./interfaces.js";
-import { ProxyNode } from "./proxynode.js";
-import { VNode } from "./vnode.js";
+import type { ProxyNode } from "./proxynode.js";
+import type { VNode } from "./vnode.js";
+
+export function VNodeExtractEl(node: VNodeExtractable): HTMLElement {
+	if ("element" in node) {
+		return node.element;
+	}
+
+	return node;
+}
 
 export class PNodeUtil {
 	public static resetStyles<T extends ProxyNode>(
@@ -78,10 +86,10 @@ export class P_VNodeUtil {
 		vnode: T,
 		direction: "append" | "prepend" = "append",
 		objs: (
-			| VN_Extractable
+			| VNodeExtractable
 			| false
 			| string
-			| (VN_Extractable | false | string)[]
+			| (VNodeExtractable | false | string)[]
 		)[]
 	): T {
 		if (objs.length < 1) {
@@ -100,7 +108,7 @@ export class P_VNodeUtil {
 			}
 
 			const extracted =
-				typeof item === "string" ? item : VNodeUtilExtend.extractEl(item);
+				typeof item === "string" ? item : VNodeExtractEl(item);
 
 			if (direction === "append") {
 				vnode.element.append(extracted);
@@ -144,52 +152,4 @@ export class P_VNodeUtil {
 	// 		options.animationReference?.(instance);
 	// 	}
 	// }
-}
-
-export class VNodeUtilExtend {
-	public static qs(
-		selector: string,
-		element: HTMLElement | Document = document
-	): VNode | null {
-		const current = element.querySelector(selector);
-
-		return current ? new VNode(current as HTMLElement) : null;
-	}
-
-	public static qsAll(
-		selector: string,
-		element: HTMLElement | Document = document
-	): VNode[] {
-		return Array.from(element.querySelectorAll(selector)).map((current) => {
-			return new VNode(current as HTMLElement);
-		});
-	}
-
-	public static extractEl(node: VN_Extractable): HTMLElement {
-		if (node instanceof ProxyNode || node instanceof VNode) {
-			return node.element;
-		} else {
-			return node;
-		}
-	}
-
-	public static getChildren(extractable: VN_Extractable): VNode[] {
-		const extracted = this.extractEl(extractable);
-
-		return Array.from(extracted.children).map(
-			(document_el) => new VNode(document_el as HTMLElement)
-		);
-	}
-
-	public static setTabIndex(extractable: VN_Extractable, index: number) {
-		const extracted = this.extractEl(extractable);
-
-		if (typeof index == "number") {
-			if (0 > index) {
-				extracted.removeAttribute("tabindex");
-			} else {
-				extracted.setAttribute("tabindex", "0");
-			}
-		}
-	}
 }

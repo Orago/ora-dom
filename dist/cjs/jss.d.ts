@@ -22,6 +22,7 @@ declare class JCSSClassManager {
     private readonly indexes;
     readonly list: Map<JssClass["name"], JssClass>;
     constructor(manager: JCSS);
+    call(run: (arg0: this) => void): this;
     has(name: JssClass["name"]): boolean;
     inject(instance: JssClass): void;
     add(name: JssClass["name"], style: JssClass["data"]): this;
@@ -34,6 +35,7 @@ declare class JCSSAnimationManager {
     private readonly indexes;
     readonly list: Map<JssAnimation["name"], JssAnimation>;
     constructor(manager: JCSS);
+    call(run: (arg0: this) => void): this;
     has(name: JssAnimation["name"]): boolean;
     inject(instance: JssAnimation): void;
     add(name: JssAnimation["name"], style: JssAnimation["data"]): this;
@@ -42,8 +44,8 @@ declare class JCSSAnimationManager {
 }
 export declare class JCSS {
     element: HTMLStyleElement;
-    styles: JCSSClassManager;
-    animations: JCSSAnimationManager;
+    style: ((run: (arg0: JCSSClassManager) => void) => JCSSClassManager) & JCSSClassManager;
+    animation: ((run: (arg0: JCSSAnimationManager) => void) => JCSSAnimationManager) & JCSSAnimationManager;
     inserted_state: boolean;
     insert(): this;
     remove(): this;

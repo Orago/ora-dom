@@ -1,30 +1,23 @@
-import { ProxyNode } from "./proxynode.js";
-import Emitter from "@orago/lib/emitter";
-export declare class ObservableNode {
-    group: ObserverGroup;
-    private node;
-    private static ids;
-    events: Emitter<{
-        append: (node: ProxyNode) => void;
-        remove: (node: ProxyNode) => void;
-    }>;
-    id: number;
-    inDom: boolean;
-    killOnRemove: boolean;
-    constructor(group: ObserverGroup, node: ProxyNode);
-    handleMutation(): void;
-    kill(): void;
-}
-export declare class ObserverGroup {
-    alive: Map<any, any>;
-    constructor();
-    create(node: ProxyNode): ObservableNode;
-}
+import { Emitter } from "@orago/lib";
+type ObservedCallback = () => void;
 export declare class ObserverTracking {
-    static inDom(element: HTMLElement): boolean;
+    private static inDom;
     static handle(element: HTMLElement): void;
+    private static getEvents;
+    private static weak_events;
     private static tracked_in_dom;
+    private wrap_map;
     list: Set<HTMLElement>;
     observer: MutationObserver;
+    events: Emitter<{
+        append: ObservedCallback;
+        remove: ObservedCallback;
+        any: () => void;
+    }, true>;
     constructor();
+    private cleanupElement;
+    on(element: HTMLElement, event: "append" | "remove", callback: ObservedCallback): this;
+    off(element: HTMLElement, event: "append" | "remove", callback?: ObservedCallback): this;
+    once(element: HTMLElement, event: "append" | "remove", callback: ObservedCallback): this;
 }
+export {};

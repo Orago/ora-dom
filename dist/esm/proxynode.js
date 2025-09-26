@@ -1,9 +1,38 @@
 import Emitter from "@orago/lib/emitter";
-import { ObserverTracking } from "./dom_observer.js";
 import { SubMap } from "./submap.js";
-import { PNodeUtil } from "./utilities.js";
-import { VNode } from "./vnode.js";
+import { PNodeUtil, VNodeExtractEl } from "./utilities.js";
 let reserved_events = ["append", "remove"];
+export class ProxynodeTracking {
+    static inDom(element) {
+        return this.tracked_in_dom.get(element) == true;
+    }
+    static handle(element) {
+        var _a, _b;
+        if (document.body.contains(element)) {
+            if (this.inDom(element) != true) {
+                (_a = ProxyNode.getEvents(element)) === null || _a === void 0 ? void 0 : _a.emit("append");
+            }
+            this.tracked_in_dom.set(element, true);
+        }
+        else if (this.inDom(element)) {
+            this.tracked_in_dom.set(element, false);
+            (_b = ProxyNode.getEvents(element)) === null || _b === void 0 ? void 0 : _b.emit("remove");
+        }
+    }
+    constructor() {
+        this.list = new Set();
+        this.observer = new MutationObserver(() => {
+            for (const element of this.list) {
+                ProxynodeTracking.handle(element);
+            }
+        });
+        this.observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
+    }
+}
+ProxynodeTracking.tracked_in_dom = new WeakMap();
 export class ProxyNode {
     static getEvents(element) {
         const existing = ProxyNode.weak_events.get(element);
@@ -14,14 +43,6 @@ export class ProxyNode {
             const emitter = new Emitter();
             ProxyNode.weak_events.set(element, emitter);
             return emitter;
-        }
-    }
-    static extractEl(node) {
-        if (node instanceof ProxyNode || node instanceof VNode) {
-            return node.element;
-        }
-        else {
-            return node;
         }
     }
     static isNode(el) {
@@ -375,7 +396,8 @@ export class ProxyNode {
 }
 ProxyNode.stored_listeners = new WeakMap();
 ProxyNode.weak_events = new WeakMap();
-ProxyNode.tracking = new ObserverTracking();
+ProxyNode.tracking = new ProxynodeTracking();
+ProxyNode.extractEl = VNodeExtractEl;
 export function generateProxyNode(el) {
     return new ProxyNode(el);
 }

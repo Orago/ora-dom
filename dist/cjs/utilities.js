@@ -1,8 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VNodeUtilExtend = exports.P_VNodeUtil = exports.PNodeUtil = void 0;
-const proxynode_js_1 = require("./proxynode.js");
-const vnode_js_1 = require("./vnode.js");
+exports.P_VNodeUtil = exports.PNodeUtil = exports.VNodeExtractEl = void 0;
+function VNodeExtractEl(node) {
+    if ("element" in node) {
+        return node.element;
+    }
+    return node;
+}
+exports.VNodeExtractEl = VNodeExtractEl;
 class PNodeUtil {
     static resetStyles(vnode, to_reset) {
         const options = to_reset.length > 0 ? to_reset : ["content", "style", "class"];
@@ -65,7 +70,7 @@ class P_VNodeUtil {
             if (item == false || item == null || Array.isArray(item)) {
                 continue;
             }
-            const extracted = typeof item === "string" ? item : VNodeUtilExtend.extractEl(item);
+            const extracted = typeof item === "string" ? item : VNodeExtractEl(item);
             if (direction === "append") {
                 vnode.element.append(extracted);
             }
@@ -84,38 +89,3 @@ class P_VNodeUtil {
     }
 }
 exports.P_VNodeUtil = P_VNodeUtil;
-class VNodeUtilExtend {
-    static qs(selector, element = document) {
-        const current = element.querySelector(selector);
-        return current ? new vnode_js_1.VNode(current) : null;
-    }
-    static qsAll(selector, element = document) {
-        return Array.from(element.querySelectorAll(selector)).map((current) => {
-            return new vnode_js_1.VNode(current);
-        });
-    }
-    static extractEl(node) {
-        if (node instanceof proxynode_js_1.ProxyNode || node instanceof vnode_js_1.VNode) {
-            return node.element;
-        }
-        else {
-            return node;
-        }
-    }
-    static getChildren(extractable) {
-        const extracted = this.extractEl(extractable);
-        return Array.from(extracted.children).map((document_el) => new proxynode_js_1.ProxyNode(document_el));
-    }
-    static setTabIndex(extractable, index) {
-        const extracted = this.extractEl(extractable);
-        if (typeof index == "number") {
-            if (0 > index) {
-                extracted.removeAttribute("tabindex");
-            }
-            else {
-                extracted.setAttribute("tabindex", "0");
-            }
-        }
-    }
-}
-exports.VNodeUtilExtend = VNodeUtilExtend;

@@ -8,6 +8,7 @@
     }
 })(function (require, exports) {
     "use strict";
+    var _a;
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.VNode = void 0;
     const lib_1 = require("@orago/lib");
@@ -33,18 +34,10 @@
                 throw new Error("Invalid element");
             }
         }
-        static extractEl(node) {
-            if (node instanceof proxynode_js_1.ProxyNode || node instanceof VNode) {
-                return node.element;
-            }
-            else {
-                return node;
-            }
-        }
         constructor(element) {
-            (0, vnode_extras_js_1.valueTrap)(this, "style", () => new vnode_extras_js_1.VNodeStyle(this));
-            (0, vnode_extras_js_1.valueTrap)(this, "class", () => new vnode_extras_js_1.VNodeClasses(this));
-            (0, vnode_extras_js_1.valueTrap)(this, "events", () => new vnode_extras_js_1.VNodeEvents(this));
+            (0, lib_1.trapValue)(this, "style", () => (0, lib_1.makeCallableClass)(vnode_extras_js_1.VNodeStyle, this));
+            (0, lib_1.trapValue)(this, "class", () => (0, lib_1.makeCallableClass)(vnode_extras_js_1.VNodeClasses, this));
+            (0, lib_1.trapValue)(this, "events", () => (0, lib_1.makeCallableClass)(vnode_extras_js_1.VNodeEvents, this));
             if (typeof element === "string") {
                 this.element = document.createElement(element);
             }
@@ -85,10 +78,10 @@
                 return this;
             }
             if (direction === "append") {
-                obj.append(utilities_js_1.VNodeUtilExtend.extractEl(this.element));
+                obj.append((0, utilities_js_1.VNodeExtractEl)(this.element));
             }
             else {
-                obj.prepend(utilities_js_1.VNodeUtilExtend.extractEl(this.element));
+                obj.prepend((0, utilities_js_1.VNodeExtractEl)(this.element));
             }
             return this;
         }
@@ -101,7 +94,16 @@
                     return this.element.value;
                 }
                 else {
-                    this.element.value = value;
+                    this.element.value = value.toString();
+                    return this;
+                }
+            }
+            else if (this.element instanceof HTMLImageElement) {
+                if (value == undefined) {
+                    return this.element.src;
+                }
+                else {
+                    this.element.src = value.toString();
                     return this;
                 }
             }
@@ -110,7 +112,7 @@
                     return this.element.textContent;
                 }
                 else {
-                    this.element.textContent = value;
+                    this.element.textContent = value.toString();
                     return this;
                 }
             }
@@ -162,13 +164,30 @@
         }
     }
     exports.VNode = VNode;
-    VNode.Util = utilities_js_1.VNodeUtilExtend;
+    VNode.Util = (_a = class VNodeUtilExtend {
+            static qs(selector, element = document) {
+                const current = element.querySelector(selector);
+                return current ? new VNode(current) : null;
+            }
+            static qsAll(selector, element = document) {
+                return Array.from(element.querySelectorAll(selector)).map((current) => {
+                    return new VNode(current);
+                });
+            }
+            static getChildren(extractable) {
+                const extracted = this.extractEl(extractable);
+                return Array.from(extracted.children).map((document_el) => new VNode(document_el));
+            }
+        },
+        _a.extractEl = utilities_js_1.VNodeExtractEl,
+        _a);
     VNode.indexing = new Map();
     VNode.new = new Proxy({}, {
         get(target, element_tag) {
             return new VNode(document.createElement(element_tag));
         },
     });
+    VNode.extractEl = utilities_js_1.VNodeExtractEl;
     VNode.send_events = false;
     VNode.events = new lib_1.Emitter();
 });

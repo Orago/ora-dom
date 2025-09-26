@@ -1,7 +1,8 @@
-import { Emitter } from "@orago/lib";
+var _a;
+import { Emitter, makeCallableClass, trapValue } from "@orago/lib";
 import { ProxyNode } from "./proxynode.js";
-import { P_VNodeUtil, VNodeUtilExtend } from "./utilities.js";
-import { valueTrap, VNodeClasses, VNodeEvents, VNodeStyle, } from "./vnode_extras.js";
+import { P_VNodeUtil, VNodeExtractEl } from "./utilities.js";
+import { VNodeClasses, VNodeEvents, VNodeStyle } from "./vnode_extras.js";
 export class VNode {
     static from(el) {
         if (typeof el === "string") {
@@ -21,18 +22,10 @@ export class VNode {
             throw new Error("Invalid element");
         }
     }
-    static extractEl(node) {
-        if (node instanceof ProxyNode || node instanceof VNode) {
-            return node.element;
-        }
-        else {
-            return node;
-        }
-    }
     constructor(element) {
-        valueTrap(this, "style", () => new VNodeStyle(this));
-        valueTrap(this, "class", () => new VNodeClasses(this));
-        valueTrap(this, "events", () => new VNodeEvents(this));
+        trapValue(this, "style", () => makeCallableClass(VNodeStyle, this));
+        trapValue(this, "class", () => makeCallableClass(VNodeClasses, this));
+        trapValue(this, "events", () => makeCallableClass(VNodeEvents, this));
         if (typeof element === "string") {
             this.element = document.createElement(element);
         }
@@ -73,10 +66,10 @@ export class VNode {
             return this;
         }
         if (direction === "append") {
-            obj.append(VNodeUtilExtend.extractEl(this.element));
+            obj.append(VNodeExtractEl(this.element));
         }
         else {
-            obj.prepend(VNodeUtilExtend.extractEl(this.element));
+            obj.prepend(VNodeExtractEl(this.element));
         }
         return this;
     }
@@ -89,7 +82,16 @@ export class VNode {
                 return this.element.value;
             }
             else {
-                this.element.value = value;
+                this.element.value = value.toString();
+                return this;
+            }
+        }
+        else if (this.element instanceof HTMLImageElement) {
+            if (value == undefined) {
+                return this.element.src;
+            }
+            else {
+                this.element.src = value.toString();
                 return this;
             }
         }
@@ -98,7 +100,7 @@ export class VNode {
                 return this.element.textContent;
             }
             else {
-                this.element.textContent = value;
+                this.element.textContent = value.toString();
                 return this;
             }
         }
@@ -149,11 +151,29 @@ export class VNode {
         return this;
     }
 }
+VNode.Util = (_a = class VNodeUtilExtend {
+        static qs(selector, element = document) {
+            const current = element.querySelector(selector);
+            return current ? new VNode(current) : null;
+        }
+        static qsAll(selector, element = document) {
+            return Array.from(element.querySelectorAll(selector)).map((current) => {
+                return new VNode(current);
+            });
+        }
+        static getChildren(extractable) {
+            const extracted = this.extractEl(extractable);
+            return Array.from(extracted.children).map((document_el) => new VNode(document_el));
+        }
+    },
+    _a.extractEl = VNodeExtractEl,
+    _a);
 VNode.indexing = new Map();
 VNode.new = new Proxy({}, {
     get(target, element_tag) {
         return new VNode(document.createElement(element_tag));
     },
 });
+VNode.extractEl = VNodeExtractEl;
 VNode.send_events = false;
 VNode.events = new Emitter();

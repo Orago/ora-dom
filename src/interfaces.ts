@@ -9,7 +9,8 @@ interface AnimationMethods {
 
 export type StyleDeclaration = Partial<
 	Record<keyof CSSStyleDeclaration, string | number>
-> & object;
+> &
+	object;
 
 export type StyleDeclarationWithProps = StyleDeclaration & {
 	props?: Record<string, string | number>;
@@ -33,10 +34,10 @@ export interface VNodeAnimationOptions {
 	 */
 	save?: boolean;
 
-/**
- * 
- */
-	
+	/**
+	 *
+	 */
+
 	animation: KeyframeAnimationOptions;
 }
 /**
@@ -49,10 +50,13 @@ type Kuh = Record<string, ReturnType<Function["bind"]>>;
  */
 export type VNodeListeners = Record<string, Kuh>;
 
-export type VN_Extractable = HTMLElement | VNode | ProxyNode;
+export type VNodeExtractable = HTMLElement | VNode | ProxyNode;
 
-export type VNodeAppendable =
-	// | VN_Extractable
-	// | false
-	// | string
-	(VN_Extractable | false | string)[];
+export type VNodeAppendable = (
+	| VNodeExtractable
+	| false
+	| string
+	| (VNodeExtractable | false | string)[]
+)[];
+
+export type VNodeElementName = keyof HTMLElementTagNameMap | (string & {});

@@ -1,21 +1,6 @@
 import { Emitter } from "@orago/lib";
 import { SubMap } from "./submap.js";
 import { P_VNodeUtil } from "./utilities.js";
-export function valueTrap(obj, property, callback) {
-    Object.defineProperty(obj, property, {
-        configurable: true,
-        get() {
-            const value = callback();
-            Object.defineProperty(obj, property, {
-                value,
-                writable: false,
-                configurable: false,
-                enumerable: true,
-            });
-            return value;
-        },
-    });
-}
 class VNodeAnimation {
     constructor(node, styles, options) {
         this.node = node;
@@ -44,6 +29,15 @@ class VNodeUtilityClass {
     }
 }
 export class VNodeStyle extends VNodeUtilityClass {
+    call(value = {}) {
+        if (typeof value == "object") {
+            return this.update(value).node;
+        }
+        else if (typeof value == "function") {
+            return this.nest(value);
+        }
+        return this.node;
+    }
     update(styles = {}) {
         P_VNodeUtil.setStyles(this.node.element, styles);
         return this;
@@ -80,6 +74,16 @@ export class VNodeClasses extends VNodeUtilityClass {
             element.classList.remove(...args);
         }
     }
+    call(...value) {
+        let [first] = value;
+        if (typeof first == "string") {
+            return this.set(...value).node;
+        }
+        else if (typeof first == "function") {
+            return this.nest(first);
+        }
+        return this.node;
+    }
     has(class_name) {
         return this.node.element.classList.contains(class_name);
     }
@@ -95,7 +99,7 @@ export class VNodeClasses extends VNodeUtilityClass {
         this.node.element.className = classes.join(" ");
         return this;
     }
-    toggleClass(class_name, status = !this.has(class_name)) {
+    toggle(class_name, status = !this.has(class_name)) {
         if (status) {
             this.add(class_name);
         }
@@ -103,6 +107,9 @@ export class VNodeClasses extends VNodeUtilityClass {
             this.remove(class_name);
         }
         return this;
+    }
+    toggleClass(class_name, status = !this.has(class_name)) {
+        return this.toggle(class_name, status);
     }
 }
 export class VNodeEvents extends VNodeUtilityClass {
@@ -169,6 +176,9 @@ export class VNodeEvents extends VNodeUtilityClass {
     constructor(node) {
         super(node);
         this.element = this.node.element;
+    }
+    call(...args) {
+        return this.nest(...args);
     }
     on(event, callback) {
         VNodeEvents.on(this.element, event, callback);

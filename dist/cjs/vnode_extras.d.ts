@@ -1,31 +1,35 @@
 import type { StyleDeclaration, VNodeAnimationOptions, VNodeStyleDeclarationWithProps } from "./interfaces.js";
 import type { VNode } from "./vnode.js";
-export declare function valueTrap<OBJ extends any, P extends keyof OBJ>(obj: OBJ, property: P, callback: () => OBJ[P]): void;
 declare class VNodeAnimation<T extends VNode> {
     private node;
     animation: Animation;
     constructor(node: T, styles: StyleDeclaration[], options: VNodeAnimationOptions);
 }
-declare class VNodeUtilityClass {
-    node: VNode;
-    constructor(node: VNode);
+declare class VNodeUtilityClass<T extends VNode = VNode> {
+    node: T;
+    constructor(node: T);
     nest(run: (arg0: this) => void): this["node"];
 }
-export declare class VNodeStyle extends VNodeUtilityClass {
+export declare class VNodeStyle<T extends VNode> extends VNodeUtilityClass<T> {
+    call(styles: VNodeStyleDeclarationWithProps): T;
+    call(value: (arg0: this) => void): T;
     update(styles?: VNodeStyleDeclarationWithProps): this;
     remove(...styles: string[]): this;
-    animate(styles: VNodeStyleDeclarationWithProps[], options: VNodeAnimationOptions): VNodeAnimation<VNode>;
+    animate(styles: VNodeStyleDeclarationWithProps[], options: VNodeAnimationOptions): VNodeAnimation<T>;
 }
-export declare class VNodeClasses extends VNodeUtilityClass {
+export declare class VNodeClasses<T extends VNode> extends VNodeUtilityClass<T> {
     static addClasses(element: HTMLElement, args: string[]): void;
     static removeClasses(element: HTMLElement, args: string[]): void;
+    call(...classes: string[]): T;
+    call(nest: (arg0: this) => void): T;
     has(class_name: string): boolean;
     add(...classes: string[]): this;
     remove(...classes: string[]): this;
     set(...classes: string[]): this;
+    toggle(class_name: string, status?: boolean): this;
     toggleClass(class_name: string, status?: boolean): this;
 }
-export declare class VNodeEvents extends VNodeUtilityClass {
+export declare class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
     private static reserved_events;
     private static stored_listeners;
     private static weak_events;
@@ -35,7 +39,8 @@ export declare class VNodeEvents extends VNodeUtilityClass {
     static off(element: HTMLElement, event: string, callback?: Function): void;
     static once(element: HTMLElement, event: string, callback: Function): void;
     element: HTMLElement;
-    constructor(node: VNode);
+    constructor(node: T);
+    call(...args: Parameters<VNodeEvents<this["node"]>["nest"]>): this["node"];
     on(event: string, callback: Function): this;
     off(event: string, callback?: Function): this;
     once(event: string, callback: Function): this;
