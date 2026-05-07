@@ -6,7 +6,6 @@ export declare class ObserverTracking {
     private static getEvents;
     private static weak_events;
     private static tracked_in_dom;
-    private wrap_map;
     list: Set<HTMLElement>;
     observer: MutationObserver;
     events: Emitter<{

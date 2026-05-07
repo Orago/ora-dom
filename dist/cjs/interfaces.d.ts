@@ -15,11 +15,25 @@ export interface DomAnimationOptionsOld {
     animationReference?: (param0: Animation) => void;
 }
 export interface VNodeAnimationOptions {
+    /**
+     * Apply last styles at end of animation
+     */
     save?: boolean;
+    /**
+     *
+     */
     animation: KeyframeAnimationOptions;
 }
+/**
+ * Record<listener: string, ReturnType<Function["bind"]>>
+ */
 type Kuh = Record<string, ReturnType<Function["bind"]>>;
+/**
+ * Record<key: string, Kuh>
+ */
 export type VNodeListeners = Record<string, Kuh>;
 export type VNodeExtractable = HTMLElement | VNode | ProxyNode;
 export type VNodeAppendable = (VNodeExtractable | false | string | (VNodeExtractable | false | string)[])[];
+export type VNodeElementName = keyof HTMLElementTagNameMap | (string & {});
+export type ResolveElement<Input extends VNodeElementName | VNodeExtractable> = Input extends keyof HTMLElementTagNameMap ? HTMLElementTagNameMap[Input] : Input extends HTMLElement ? Input : Input extends VNode ? Input["element"] : HTMLElement;
 export {};

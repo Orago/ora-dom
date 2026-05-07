@@ -5,25 +5,29 @@ exports.VNode = void 0;
 const lib_1 = require("@orago/lib");
 const proxynode_js_1 = require("./proxynode.js");
 const utilities_js_1 = require("./utilities.js");
-const vnode_extras_js_1 = require("./vnode_extras.js");
+const vnode_extras_js_1 = require("./utilities/vnode_extras.js");
 class VNode {
-    static from(el) {
+    static getElement(el) {
         if (typeof el === "string") {
-            return new VNode(document.createElement(el));
+            return document.createElement(el);
         }
         else if (el instanceof HTMLElement ||
             el instanceof HTMLInputElement) {
-            return new VNode(el);
+            return el;
         }
         else if (el instanceof VNode) {
-            return new VNode(el.element);
+            return el.element;
         }
         else if (el instanceof proxynode_js_1.ProxyNode) {
-            return new VNode(el.element);
+            return el.element;
         }
         else {
             throw new Error("Invalid element");
         }
+    }
+    static from(el) {
+        const element = VNode.getElement(el);
+        return new VNode(element);
     }
     constructor(element) {
         (0, lib_1.trapValue)(this, "style", () => (0, lib_1.makeCallableClass)(vnode_extras_js_1.VNodeStyle, this));
@@ -33,18 +37,19 @@ class VNode {
             this.element = document.createElement(element);
         }
         else {
-            this.element = VNode.extractEl(element);
+            this.element = VNode.Util.extractEl(element);
         }
         if (VNode.send_events === true) {
-            VNode.events.emit("create", this);
+            VNode.events.emit("add", this);
         }
+        VNode.events.emit("init", this);
     }
     attr(attributes = {}) {
         utilities_js_1.P_VNodeUtil.attr(this.element, attributes);
         return this;
     }
     swap(node) {
-        const new_node = VNode.extractEl(node);
+        const new_node = VNode.Util.extractEl(node);
         this.element.replaceWith(new_node);
         this.element = new_node;
         return this;
@@ -80,7 +85,8 @@ class VNode {
         return this.element.getBoundingClientRect();
     }
     value(value = undefined) {
-        if (this.element instanceof HTMLInputElement) {
+        if (this.element instanceof HTMLInputElement ||
+            this.element instanceof HTMLSelectElement) {
             if (value == undefined) {
                 return this.element.value;
             }
@@ -129,23 +135,29 @@ class VNode {
     }
     remove() {
         this.element.remove();
+        // if (VNode.send_events === true) {
+        // 	VNode.events.emit("remove", this);
+        // }
         return this;
     }
     setContent(...content) {
         return this.clear().append(...content);
     }
+    /**
+     * Clears inner content
+     */
     clear() {
         this.element.textContent = "";
         return this;
     }
-    setStyles(styles) {
-        this.style.update(styles);
-        return this;
-    }
-    setClasses(...classes) {
-        this.class.set(...classes);
-        return this;
-    }
+    // public setStyles(styles: StyleDeclarationWithProps) {
+    // 	this.style.update(styles);
+    // 	return this;
+    // }
+    // public setClasses(...classes: string[]) {
+    // 	this.class.set(...classes);
+    // 	return this;
+    // }
     inDom(parent = document.body) {
         return parent.contains(this.element);
     }
@@ -166,18 +178,25 @@ VNode.Util = (_a = class VNodeUtilExtend {
             });
         }
         static getChildren(extractable) {
-            const extracted = this.extractEl(extractable);
+            const extracted = (0, utilities_js_1.VNodeExtractEl)(extractable);
             return Array.from(extracted.children).map((document_el) => new VNode(document_el));
         }
     },
     _a.extractEl = utilities_js_1.VNodeExtractEl,
     _a);
 VNode.indexing = new Map();
+/**
+ * Replacement for 'newNode' on ProxyNode Utilities
+ */
 VNode.new = new Proxy({}, {
     get(target, element_tag) {
         return new VNode(document.createElement(element_tag));
+        // generateProxyNode(document.createElement(elementTag));
     },
 });
+/**
+ * @deprecated Use VNode.Util.extractEl
+ */
 VNode.extractEl = utilities_js_1.VNodeExtractEl;
 VNode.send_events = false;
 VNode.events = new lib_1.Emitter();

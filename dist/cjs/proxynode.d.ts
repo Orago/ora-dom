@@ -7,6 +7,9 @@ type ProxyNodeEvents = {
     append: () => void;
     remove: () => void;
 };
+/**
+ * Record<element_tag: string, proxy_node: ProxyNode>;
+ */
 type NewNode = Record<string, ProxyNode>;
 export declare class ProxynodeTracking {
     static inDom(element: HTMLElement): boolean;
@@ -34,6 +37,7 @@ export declare class ProxyNode {
     get parent(): ProxyNode | undefined;
     get value(): string;
     set value(value: string);
+    /** @deprecated - removed in the next version */
     get wrapper(): this["ref"];
     ref(run: (arg0: this) => void): this;
     text(content: string): this;
@@ -42,10 +46,28 @@ export declare class ProxyNode {
         [attribute: string]: string | number;
     }): this;
     swap(node: this | HTMLElement): this;
+    /**
+     * Creates a cloned node
+     */
     clone(): ProxyNode;
+    /**
+     * Clears inner content
+     */
     clear(): this;
+    /**
+     * Checks if dom contains element
+     */
     exists(): boolean;
+    /**
+     * Returns a list of child proxy nodes
+     */
     getChildren(): ProxyNode[];
+    /**
+     *
+     * @param to_reset
+     * @returns
+     * @deprecated - Possibly removed in the next version
+     */
     reset(...to_reset: ("content" | "style" | "class")[]): this;
     class(...args: string[]): this;
     hasClass(className: string): boolean;
@@ -64,8 +86,15 @@ export declare class ProxyNode {
         };
     }): this;
     removeListener(key: any): this;
+    /**
+     *
+     * @deprecated - stop using this dumbass
+     */
     interval(callback: Function, time?: number, immediate?: boolean): this;
     remove(): this;
+    /**
+     * clears the content and appends
+     */
     setContent(...content: any[]): this;
     append(...objs: (PN_Extractable | false | string | (PN_Extractable | false | string)[])[]): this;
     appendTo(obj: PN_Extractable | false): this;
@@ -74,6 +103,9 @@ export declare class ProxyNode {
     focus(): this;
     scroll(x?: number, y?: number): this;
     setTabIndex(index: number): this;
+    /**
+     * @deprecated - Possibly removed in the next version
+     */
     horizontalScrolling(): this;
     animate(styles: Array<StyleDeclaration>, options: number | (KeyframeAnimationOptions & DomAnimationOptionsOld)): this;
 }

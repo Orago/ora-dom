@@ -8,7 +8,6 @@ declare class ObserverTracking {
     private static getEvents;
     private static weak_events;
     private static tracked_in_dom;
-    private wrap_map;
     list: Set<HTMLElement>;
     observer: MutationObserver;
     events: Emitter<{
@@ -23,7 +22,7 @@ declare class ObserverTracking {
     once(element: HTMLElement, event: "append" | "remove", callback: ObservedCallback): this;
 }
 
-declare class VNode {
+declare class VNode<E extends HTMLElement = HTMLElement> {
     static Util: {
         new (): {};
         qs(selector: string, element?: HTMLElement | Document): VNode | null;
@@ -32,19 +31,48 @@ declare class VNode {
         getChildren(extractable: VNodeExtractable): VNode[];
     };
     static indexing: Map<any, any>;
-    static new: Record<string, VNode>;
-    static from(el: Element | string | VNode | ProxyNode): VNode;
+    /**
+     * Replacement for 'newNode' on ProxyNode Utilities
+     */
+    static new: Record<VNodeElementName, VNode>;
+    static getElement<T extends VNodeElementName | VNodeExtractable>(el: T): ResolveElement<T>;
+    static from<T extends VNodeElementName | VNodeExtractable>(el: T): VNode<ResolveElement<T>>;
+    /**
+     * @deprecated Use VNode.Util.extractEl
+     */
     static extractEl: typeof VNodeExtractEl;
     static send_events: boolean;
     static events: Emitter<{
-        create: (node: VNode) => void;
+        init: (node: VNode) => void;
+        /**
+         * Do not rely on this
+         * @deprecated
+         * @param node
+         * @returns
+         */
+        add: (node: VNode) => void;
+        /**
+         * Do not rely on this
+         * @deprecated
+         * @param node
+         * @returns
+         */
         remove: (node: VNode) => void;
     }, true>;
-    element: HTMLElement;
+    element: ResolveElement<E>;
+    /**
+     * Styling manager
+     */
     style: ReturnType<typeof makeCallableClass<typeof VNodeStyle<this>>>;
+    /**
+     * Class manager
+     */
     class: ReturnType<typeof makeCallableClass<typeof VNodeClasses<this>>>;
+    /**
+     * Event manager
+     */
     events: ReturnType<typeof makeCallableClass<typeof VNodeEvents<this>>>;
-    constructor(element: keyof HTMLElementTagNameMap | (string & {}) | VNodeExtractable);
+    constructor(element: VNodeElementName | VNodeExtractable);
     attr(attributes?: Record<string, string | number>): this;
     swap(node: VNodeExtractable): this;
     id(value: string): this;
@@ -53,15 +81,16 @@ declare class VNode {
     prepend(...objs: VNodeAppendable): this;
     appendTo(obj: VNodeExtractable | false, direction?: "append" | "prepend"): this;
     getBounds(): DOMRect;
-    value(): string;
+    value(): any;
     value(value: string | number): this;
     focus(): this;
     ref(run: (arg0: this) => void): this;
     remove(): this;
     setContent(...content: any[]): this;
+    /**
+     * Clears inner content
+     */
     clear(): this;
-    setStyles(styles: StyleDeclarationWithProps): this;
-    setClasses(...classes: string[]): this;
     inDom(parent?: HTMLElement): boolean;
     scroll(x?: number, y?: number): this;
 }
@@ -73,6 +102,9 @@ type ProxyNodeEvents = {
     append: () => void;
     remove: () => void;
 };
+/**
+ * Record<element_tag: string, proxy_node: ProxyNode>;
+ */
 type NewNode = Record<string, ProxyNode>;
 declare class ProxynodeTracking {
     static inDom(element: HTMLElement): boolean;
@@ -100,6 +132,7 @@ declare class ProxyNode {
     get parent(): ProxyNode | undefined;
     get value(): string;
     set value(value: string);
+    /** @deprecated - removed in the next version */
     get wrapper(): this["ref"];
     ref(run: (arg0: this) => void): this;
     text(content: string): this;
@@ -108,10 +141,28 @@ declare class ProxyNode {
         [attribute: string]: string | number;
     }): this;
     swap(node: this | HTMLElement): this;
+    /**
+     * Creates a cloned node
+     */
     clone(): ProxyNode;
+    /**
+     * Clears inner content
+     */
     clear(): this;
+    /**
+     * Checks if dom contains element
+     */
     exists(): boolean;
+    /**
+     * Returns a list of child proxy nodes
+     */
     getChildren(): ProxyNode[];
+    /**
+     *
+     * @param to_reset
+     * @returns
+     * @deprecated - Possibly removed in the next version
+     */
     reset(...to_reset: ("content" | "style" | "class")[]): this;
     class(...args: string[]): this;
     hasClass(className: string): boolean;
@@ -130,8 +181,15 @@ declare class ProxyNode {
         };
     }): this;
     removeListener(key: any): this;
+    /**
+     *
+     * @deprecated - stop using this dumbass
+     */
     interval(callback: Function, time?: number, immediate?: boolean): this;
     remove(): this;
+    /**
+     * clears the content and appends
+     */
     setContent(...content: any[]): this;
     append(...objs: (PN_Extractable | false | string | (PN_Extractable | false | string)[])[]): this;
     appendTo(obj: PN_Extractable | false): this;
@@ -140,6 +198,9 @@ declare class ProxyNode {
     focus(): this;
     scroll(x?: number, y?: number): this;
     setTabIndex(index: number): this;
+    /**
+     * @deprecated - Possibly removed in the next version
+     */
     horizontalScrolling(): this;
     animate(styles: Array<StyleDeclaration>, options: number | (KeyframeAnimationOptions & DomAnimationOptionsOld)): this;
 }
@@ -165,17 +226,36 @@ interface DomAnimationOptionsOld {
     onRemove?: (this: Animation, ev?: Event) => any;
     animationReference?: (param0: Animation) => void;
 }
+/**
+ * Record<listener: string, ReturnType<Function["bind"]>>
+ */
 type Kuh = Record<string, ReturnType<Function["bind"]>>;
+/**
+ * Record<key: string, Kuh>
+ */
 type VNodeListeners = Record<string, Kuh>;
 type VNodeExtractable = HTMLElement | VNode | ProxyNode;
 type VNodeAppendable = (VNodeExtractable | false | string | (VNodeExtractable | false | string)[])[];
+type VNodeElementName = keyof HTMLElementTagNameMap | (string & {});
+type ResolveElement<Input extends VNodeElementName | VNodeExtractable> = Input extends keyof HTMLElementTagNameMap ? HTMLElementTagNameMap[Input] : Input extends HTMLElement ? Input : Input extends VNode ? Input["element"] : HTMLElement;
 
-type Dec = keyof CSSStyleDeclaration | `--${string}`;
-declare class JssClass {
-    static parseContents(data: Partial<Record<Dec, string>>): string[];
+type JSSStyleNames = keyof CSSStyleDeclaration | `--${string}`;
+type StyleOptions = Partial<Record<JSSStyleNames, string>>;
+type JCSSOptions = StyleOptions & {
+    extend?: Record<`:${string}` | string, StyleOptions>;
+};
+declare class JssStyle {
+    static parseContents(data: Partial<Record<JSSStyleNames, string>>): string[];
+    data: JCSSOptions;
+    constructor(data: JssClass["data"]);
+    protected resolve(name: string, data: StyleOptions): string;
+    toString(name: string): string;
+}
+declare class JssClass extends JssStyle {
+    static parseContents(data: Partial<Record<JSSStyleNames, string>>): string[];
     name: string;
-    data: Partial<Record<Dec, string>>;
     constructor(name: JssClass["name"], data: JssClass["data"]);
+    protected resolve(name: string, data: StyleOptions): string;
     toString(): string;
 }
 type AnimationPosition = `${number}%` | "from" | "to";
@@ -183,18 +263,18 @@ declare class JssAnimation {
     name: string;
     data: [
         position: AnimationPosition | AnimationPosition[],
-        contents: Partial<Record<Dec, string>>
+        contents: Partial<Record<JSSStyleNames, string>>
     ][];
     constructor(name: JssAnimation["name"], data: JssAnimation["data"]);
     toString(): string;
 }
-declare class JCSSClassManager {
+declare class JCSSStyleManager {
     manager: JCSS;
     private counter;
     private readonly indexes;
     readonly list: Map<JssClass["name"], JssClass>;
     constructor(manager: JCSS);
-    call(run: (arg0: this) => void): this;
+    call(run: (arg0: this) => void): this["manager"];
     has(name: JssClass["name"]): boolean;
     inject(instance: JssClass): void;
     add(name: JssClass["name"], style: JssClass["data"]): this;
@@ -207,7 +287,7 @@ declare class JCSSAnimationManager {
     private readonly indexes;
     readonly list: Map<JssAnimation["name"], JssAnimation>;
     constructor(manager: JCSS);
-    call(run: (arg0: this) => void): this;
+    call(run: (arg0: this) => void): this["manager"];
     has(name: JssAnimation["name"]): boolean;
     inject(instance: JssAnimation): void;
     add(name: JssAnimation["name"], style: JssAnimation["data"]): this;
@@ -216,21 +296,58 @@ declare class JCSSAnimationManager {
 }
 declare class JCSS {
     element: HTMLStyleElement;
-    style: ((run: (arg0: JCSSClassManager) => void) => JCSSClassManager) & JCSSClassManager;
-    animation: ((run: (arg0: JCSSAnimationManager) => void) => JCSSAnimationManager) & JCSSAnimationManager;
+    style: ((run: (arg0: JCSSStyleManager) => void) => JCSS) & JCSSStyleManager;
+    animation: ((run: (arg0: JCSSAnimationManager) => void) => JCSS) & JCSSAnimationManager;
     inserted_state: boolean;
     insert(): this;
     remove(): this;
+    /**
+     * @deprecated
+     */
     rebuild(): this;
+    build(): this;
     getUsageCount(): number;
     ref(run: (arg0: this) => void): this;
 }
 
-declare class StyledVNode extends VNode {
-    private instance;
-    constructor(type: keyof HTMLElementTagNameMap, instance: JCSS);
-    appendTo(obj: VNodeExtractable | false, direction?: "append" | "prepend"): this;
-    remove(): this;
+declare class StyledNodeManager {
+    readonly id: number;
+    class: JssClass;
+    constructor(id: number);
+    /**
+     * Returns the generated classname prefixed by vns_
+     * which stands for Virtual Node Style -
+     */
+    getClassName(): string;
+}
+declare abstract class StyledVNode<E extends HTMLElement = HTMLElement> extends VNode<E> {
+    static managers: Map<typeof VNode, StyledNodeManager>;
+    static class_index: number;
+    /** Should not be changed */
+    private static sheet;
+    /** May be overridden by extending the class */
+    static styles: Partial<Record<JSSStyleNames, string>> & {
+        _: unknown;
+    };
+    static getConstructor<T extends VNode>(ref: T): typeof VNode;
+    static findOrCreate(c: typeof VNode<any>, styles: JCSSOptions | JssStyle): string;
+    /**
+     * Connects by finding or creating an instance
+     */
+    static connect(class_ref: VNode, styles: JCSSOptions | JssStyle): void;
+    /**
+     * Connects if there is an existing instance
+     */
+    static connect(class_ref: VNode): void;
+    static getManager(c: typeof VNode): StyledNodeManager;
+    /** Destroys the class and it's relations for a vnode class */
+    static destroy(class_ref: VNode): void;
+    static init(): void;
+    protected static validStyles<S extends Partial<Record<JSSStyleNames, string>>>(styles: S): S & {
+        _: unknown;
+    };
+    constructor(element: VNodeElementName | VNodeExtractable);
+    getConstructor(): typeof StyledVNode;
 }
 declare class JCSSTracker {
     private instance;
@@ -241,5 +358,56 @@ declare class JCSSTracker {
     disable(): void;
 }
 
-export { JCSS, JCSSTracker, ObserverTracking, ProxyNode, StyledVNode, VNode, _default as default, generateProxyNode, newNode, qs, qsAll };
+declare class VNodeObserver {
+    private inDom;
+    private tracked_in_dom;
+    observer: MutationObserver;
+    constructor();
+}
+declare class StateTracking {
+    static flag: string;
+    static ref_prop: string;
+    static initNodeTracking(node: VNode): void;
+    static init(options?: {
+        all?: boolean;
+    }): {
+        observer: VNodeObserver;
+        destroy(): void;
+    };
+    static filterQuery(list: any[]): VNode[];
+    static query(): VNode[];
+}
+
+declare class VNodeEventGroup {
+    private node;
+    map: Map<keyof HTMLElementEventMap, Function>;
+    constructor(node: VNode);
+    on(event: keyof HTMLElementEventMap, callback: Function): this;
+    off(event: keyof HTMLElementEventMap, callback?: Function): this;
+    clear(): this;
+}
+
+declare class Fullscreen {
+    static exitFullscreen(): void;
+    static isFullscreen(element: HTMLElement): boolean;
+    static enterFullscreen(element: HTMLElement): HTMLElement;
+}
+declare class PictureApi {
+    static createWindow(options?: {
+        width?: number;
+        height?: number;
+    }): Promise<Window | undefined>;
+    static createPictureWindow(options?: {
+        width?: number;
+        height?: number;
+    }): Promise<Window | undefined>;
+    static cloneWindowStyles(from: Window, to: Window): void;
+}
+
+declare namespace experimental {
+  export {
+  };
+}
+
+export { experimental as Experimental, Fullscreen, JCSS, JCSSTracker, JssAnimation, JssClass, JssStyle, ObserverTracking, PictureApi as Picture, ProxyNode, StateTracking, StyledVNode, VNode, VNodeEventGroup, _default as default, generateProxyNode, newNode, qs, qsAll };
 export type { StyleDeclaration, StyleDeclarationWithProps };

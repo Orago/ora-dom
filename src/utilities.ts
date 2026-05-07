@@ -1,9 +1,71 @@
 import type {
+	VNodeChildList,
 	VNodeExtractable,
 	VNodeStyleDeclarationWithProps,
 } from "./interfaces.js";
 import type { ProxyNode } from "./proxynode.js";
 import type { VNode } from "./vnode.js";
+
+type VNodeAppendable = VNodeExtractable | string;
+
+export class VNodeUtilities {
+	public static flattenContents(contents: VNodeChildList): VNodeAppendable[] {
+		return contents
+			.flat()
+			.filter((content) => content != undefined && content != false)
+			.map((a) => {
+				let t = typeof a;
+				// convert number or bool types to string
+				a = "number" == t || "boolean" == t ? String(a) : a;
+				// // convert strings to text nodes
+				// a = typeof a == "string" ? document.createTextNode(a) : a;
+				return a as VNodeAppendable;
+			});
+	}
+
+	public static flattenElements(contents: VNodeChildList): HTMLElement[] {
+		return contents.map((a) => {
+			let t = typeof a;
+
+			// convert number or bool types to string
+			a = "number" == t || "boolean" == t ? String(a) : a;
+			a = "string" == typeof a ? document.createTextNode(a) : a;
+
+			return a as HTMLElement;
+		});
+	}
+	public static injectItems<T extends HTMLElement>(
+		node: T,
+		direction: "append" | "prepend" = "append",
+		objs: VNodeChildList
+	): void {
+		if (objs.length < 1) {
+			return;
+		}
+		const items = this.flattenContents(objs);
+
+		for (const item of items) {
+			const extracted =
+				typeof item === "string" ? item : VNodeExtractEl(item);
+
+			if (direction === "append") {
+				node.append(extracted);
+			} else {
+				node.prepend(extracted);
+			}
+		}
+	}
+}
+export class VNodeUtilityClass<T extends VNode = VNode> {
+	constructor(public node: T) {
+		this.node = node;
+	}
+
+	public nest(run: (arg0: this) => void): this["node"] {
+		run(this);
+		return this.node;
+	}
+}
 
 export function VNodeExtractEl(node: VNodeExtractable): HTMLElement {
 	if ("element" in node) {
@@ -122,11 +184,13 @@ export class P_VNodeUtil {
 
 	public static attr(
 		element: HTMLElement,
-		attributes: Record<string, string | number> = {}
+		attributes: Record<string, string | number | undefined> = {}
 	): void {
 		if (typeof attributes == "object" && attributes !== null) {
 			for (const [key, value] of Object.entries(attributes)) {
-				element.setAttribute(key, value + "");
+				if (value != null) {
+					element.setAttribute(key, String(value));
+				}
 			}
 		}
 	}

@@ -1,15 +1,25 @@
-import { Emitter, makeCallableClass, trapValue } from "@orago/lib";
+import { Emitter, makeCallableClass, State, trapValue } from "@orago/lib";
 import type {
-	StyleDeclarationWithProps,
 	VNodeExtractable,
-	VNodeAppendable,
+	VNodeChildList,
 	VNodeElementName,
+	ResolveElement,
 } from "./interfaces.js";
 import { ProxyNode } from "./proxynode.js";
-import { P_VNodeUtil, VNodeExtractEl } from "./utilities.js";
-import { VNodeClasses, VNodeEvents, VNodeStyle } from "./vnode_extras.js";
+import { P_VNodeUtil, VNodeUtilities, VNodeExtractEl } from "./utilities.js";
+import {
+	VNodeClasses,
+	VNodeEvents,
+	VNodeStyle,
+} from "./utilities/vnode_extras.js";
 
-export class VNode {
+type StateValues<T extends readonly State<any>[]> = {
+	[K in keyof T]: ReturnType<T[K]["get"]>;
+};
+
+type EmitterValue<S> = S extends Emitter<infer T> ? T : never;
+
+export class VNode<E extends HTMLElement = HTMLElement> {
 	public static Util = class VNodeUtilExtend {
 		public static qs(
 			selector: string,
@@ -34,7 +44,7 @@ export class VNode {
 		public static extractEl = VNodeExtractEl;
 
 		public static getChildren(extractable: VNodeExtractable): VNode[] {
-			const extracted = this.extractEl(extractable);
+			const extracted = VNodeExtractEl(extractable);
 
 			return Array.from(extracted.children).map(
 				(document_el) => new VNode(document_el as HTMLElement)
@@ -46,8 +56,9 @@ export class VNode {
 
 	/**
 	 * Replacement for 'newNode' on ProxyNode Utilities
+	 * @deprecated
 	 */
-	public static new: Record<VNodeElementName, VNode> = new Proxy(
+	public static of: Record<VNodeElementName, VNode> = new Proxy(
 		{},
 		{
 			get(target: object, element_tag: string): VNode {
@@ -57,25 +68,30 @@ export class VNode {
 		}
 	) as any;
 
-	public static from(el: VNodeElementName | VNodeExtractable) {
+	public static getElement<T extends VNodeElementName | VNodeExtractable>(
+		el: T
+	): ResolveElement<T> {
 		if (typeof el === "string") {
-			// this.element = document.createElement(el);
-			return new VNode(document.createElement(el));
+			return document.createElement(el) as ResolveElement<T>;
 		} else if (
-			// el instanceof Element ||
 			el instanceof HTMLElement ||
 			el instanceof HTMLInputElement
 		) {
-			// this.element = el;
-			return new VNode(el);
+			return el as ResolveElement<T>;
 		} else if (el instanceof VNode) {
-			return new VNode(el.element);
-			// this.element = el.element;
+			return el.element as ResolveElement<T>;
 		} else if (el instanceof ProxyNode) {
-			return new VNode(el.element);
+			return el.element as ResolveElement<T>;
 		} else {
 			throw new Error("Invalid element");
 		}
+	}
+
+	public static from<T extends VNodeElementName | VNodeExtractable>(
+		el: T
+	): VNode<ResolveElement<T>> {
+		const element = VNode.getElement(el);
+		return new VNode(element);
 	}
 
 	/**
@@ -87,13 +103,26 @@ export class VNode {
 
 	public static events: Emitter<
 		{
-			create: (node: VNode) => void;
+			init: (node: VNode) => void;
+			/**
+			 * Do not rely on this
+			 * @deprecated
+			 * @param node
+			 * @returns
+			 */
+			add: (node: VNode) => void;
+			/**
+			 * Do not rely on this
+			 * @deprecated
+			 * @param node
+			 * @returns
+			 */
 			remove: (node: VNode) => void;
 		},
 		true
 	> = new Emitter();
 
-	public element: HTMLElement;
+	public element: ResolveElement<E>;
 
 	/**
 	 * Styling manager
@@ -126,31 +155,47 @@ export class VNode {
 	>;
 
 	constructor(element: VNodeElementName | VNodeExtractable) {
-		trapValue(this, "style", () => makeCallableClass(VNodeStyle, this));
-		trapValue(this, "class", () => makeCallableClass(VNodeClasses, this));
-		trapValue(this, "events", () => makeCallableClass(VNodeEvents, this));
+		trapValue(
+			this,
+			"style",
+			() => makeCallableClass(VNodeStyle, this as any) as any
+		);
+		trapValue(
+			this,
+			"class",
+			() => makeCallableClass(VNodeClasses, this as any) as any
+		);
+		trapValue(
+			this,
+			"events",
+			() => makeCallableClass(VNodeEvents, this as any) as any
+		);
 
 		if (typeof element === "string") {
-			this.element = document.createElement(element);
+			this.element = document.createElement(element) as any;
 		} else {
-			this.element = VNode.extractEl(element);
+			this.element = VNode.Util.extractEl(element) as any;
 		}
 
 		if (VNode.send_events === true) {
-			VNode.events.emit("create", this);
+			VNode.events.emit("add", this as any);
 		}
+
+		VNode.events.emit("init", this as any);
 	}
 
-	public attr(attributes: Record<string, string | number> = {}): this {
+	public attr(
+		attributes: Partial<Record<string, string | number> & E> = {}
+	): this {
 		P_VNodeUtil.attr(this.element, attributes);
 		return this;
 	}
 
 	public swap(node: VNodeExtractable): this {
-		const new_node = VNode.extractEl(node);
+		const new_node = VNode.Util.extractEl(node);
 
 		this.element.replaceWith(new_node);
-		this.element = new_node;
+		this.element = new_node as any;
 
 		return this;
 	}
@@ -167,12 +212,15 @@ export class VNode {
 		}
 	}
 
-	public append(...objs: VNodeAppendable): this {
-		return P_VNodeUtil.injectItems(this, "append", objs);
+	public append(...objs: VNodeChildList): this {
+		VNodeUtilities.injectItems(this.element, "append", objs);
+
+		return this;
 	}
 
-	public prepend(...objs: VNodeAppendable): this {
-		return P_VNodeUtil.injectItems(this, "prepend", objs);
+	public prepend(...objs: VNodeChildList): this {
+		VNodeUtilities.injectItems(this.element, "prepend", objs);
+		return this;
 	}
 
 	public appendTo(
@@ -181,22 +229,21 @@ export class VNode {
 	): this {
 		if (obj == false) {
 			return this;
-		}
-
-		if (direction === "append") {
-			obj.append(VNodeExtractEl(this.element));
 		} else {
-			obj.prepend(VNodeExtractEl(this.element));
+			if (direction === "append") {
+				obj.append(VNodeExtractEl(this.element));
+			} else {
+				obj.prepend(VNodeExtractEl(this.element));
+			}
+			return this;
 		}
-
-		return this;
 	}
 
 	public getBounds() {
 		return this.element.getBoundingClientRect();
 	}
 
-	public value(): string;
+	public value(): any;
 	public value(value: string | number): this;
 	public value(value: string | number | undefined = undefined): any {
 		if (
@@ -253,11 +300,6 @@ export class VNode {
 
 	public remove() {
 		this.element.remove();
-
-		// if (VNode.send_events === true) {
-		// 	VNode.events.emit("remove", this);
-		// }
-
 		return this;
 	}
 
@@ -265,23 +307,9 @@ export class VNode {
 		return this.clear().append(...content);
 	}
 
-	/**
-	 * Clears inner content
-	 */
+	/** Clears inner content */
 	public clear(): this {
 		this.element.textContent = "";
-
-		return this;
-	}
-
-	public setStyles(styles: StyleDeclarationWithProps) {
-		this.style.update(styles);
-
-		return this;
-	}
-
-	public setClasses(...classes: string[]) {
-		this.class.set(...classes);
 		return this;
 	}
 
@@ -294,7 +322,3 @@ export class VNode {
 		return this;
 	}
 }
-
-const gotten = VNode.new;
-
-gotten;

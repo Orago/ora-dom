@@ -23,6 +23,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
         }
         static handle(element) {
             var _a, _b;
+            // If it's in dom now but wasn't before
             if (document.body.contains(element)) {
                 if (this.inDom(element) != true) {
                     (_a = ProxyNode.getEvents(element)) === null || _a === void 0 ? void 0 : _a.emit("append");
@@ -30,6 +31,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
                 this.tracked_in_dom.set(element, true);
             }
             else if (this.inDom(element)) {
+                /* Was in dom but removed */
                 this.tracked_in_dom.set(element, false);
                 (_b = ProxyNode.getEvents(element)) === null || _b === void 0 ? void 0 : _b.emit("remove");
             }
@@ -61,6 +63,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
                 return emitter;
             }
         }
+        // static extractEl(node: PN_Extractable): HTMLElement {
+        // 	if (node instanceof ProxyNode || node instanceof VNode) {
+        // 		return node.element;
+        // 	} else {
+        // 		return node;
+        // 	}
+        // }
         static isNode(el) {
             return el instanceof ProxyNode;
         }
@@ -79,12 +88,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
             const group = ProxyNode.getCallbacksGroup(element);
             return group.get(event);
         }
+        // get call() {
+        // 	return this;
+        // }
         constructor(el) {
             this.listeners = {};
             if (typeof el === "string") {
                 this.element = document.createElement(el);
             }
-            else if (el instanceof HTMLElement ||
+            else if (
+            // el instanceof Element ||
+            el instanceof HTMLElement ||
                 el instanceof HTMLInputElement)
                 this.element = el;
             else if (el instanceof ProxyNode) {
@@ -126,6 +140,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
                 this.element.textContent = value;
             }
         }
+        /** @deprecated - removed in the next version */
         get wrapper() {
             return this.ref;
         }
@@ -133,6 +148,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
             run(this);
             return this;
         }
+        //#region //* Default Utils *//
         text(content) {
             this.element.textContent = content;
             return this;
@@ -156,22 +172,42 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
             this.element = new_node;
             return this;
         }
+        /**
+         * Creates a cloned node
+         */
         clone() {
             return new ProxyNode(this.element.cloneNode(true));
         }
+        /**
+         * Clears inner content
+         */
         clear() {
             this.element.textContent = "";
             return this;
         }
+        /**
+         * Checks if dom contains element
+         */
         exists() {
             return document.body.contains(this.element);
         }
+        /**
+         * Returns a list of child proxy nodes
+         */
         getChildren() {
             return Array.from(this.element.children).map((documentEl) => new ProxyNode(documentEl));
         }
+        /**
+         *
+         * @param to_reset
+         * @returns
+         * @deprecated - Possibly removed in the next version
+         */
         reset(...to_reset) {
             return utilities_js_1.PNodeUtil.resetStyles(this, to_reset);
         }
+        //#endregion //* Default Utils *//
+        //#region //* Classes *//
         class(...args) {
             this.element.className = args.join(" ");
             return this;
@@ -208,6 +244,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
             status ? this.addClass(className) : this.removeClass(className);
             return this;
         }
+        //#endregion //* Classes *//
+        //#region //* Styles *//
         styles(styles = {}) {
             if (typeof styles != "object") {
                 return this;
@@ -221,6 +259,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
                         this.element.style.setProperty(`--${prop_key}`, prop_value);
                     }
                 }
+                // @ts-ignore
                 this.element.style[key] = value;
             }
             return this;
@@ -234,9 +273,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
             }
             return this;
         }
+        //#endregion //* Styles *//
         getEvents() {
             return ProxyNode.getEvents(this.element);
         }
+        //#region //* Listeners *//
         on(event, callback) {
             if (reserved_events.includes(event)) {
                 this.getEvents().on(event, callback);
@@ -303,6 +344,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
             delete this.listeners[key];
             return this;
         }
+        //#endregion //* Listeners *//
+        //#region //* Intervals *//
+        /**
+         *
+         * @deprecated - stop using this dumbass
+         */
         interval(callback, time = 1000, immediate = false) {
             const toCall = () => callback.bind(this)(this, () => clearInterval(temp_interval));
             if (immediate) {
@@ -312,10 +359,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
             this.on("remove", () => clearInterval(temp_interval));
             return this;
         }
+        //#endregion //* Intervals *//
+        //#region //* Random *//
         remove() {
             this.element.remove();
             return this;
         }
+        /**
+         * clears the content and appends
+         */
         setContent(...content) {
             return this.clear().append(...content);
         }
@@ -385,6 +437,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
             }
             return this;
         }
+        /**
+         * @deprecated - Possibly removed in the next version
+         */
         horizontalScrolling() {
             this.on("wheel", (event) => {
                 event.preventDefault();
@@ -413,6 +468,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     exports.ProxyNode = ProxyNode;
     ProxyNode.stored_listeners = new WeakMap();
     ProxyNode.weak_events = new WeakMap();
+    // private static qs = qs;
+    // private static qsAll = qsAll;
     ProxyNode.tracking = new ProxynodeTracking();
     ProxyNode.extractEl = utilities_js_1.VNodeExtractEl;
     function generateProxyNode(el) {
@@ -422,6 +479,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     exports.newNode = new Proxy({}, {
         get(target, element_tag) {
             return new ProxyNode(document.createElement(element_tag));
+            // generateProxyNode(document.createElement(elementTag));
         },
     });
     function qs(selector, element = document) {

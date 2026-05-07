@@ -201,6 +201,7 @@ class ObserverTracking {
     }
     static handle(element) {
         var _a, _b;
+        // If it's in dom now but wasn't before
         if (document.body.contains(element)) {
             if (this.inDom(element) != true) {
                 (_a = this.getEvents(element)) === null || _a === void 0 ? void 0 : _a.emit("append");
@@ -208,6 +209,7 @@ class ObserverTracking {
             this.tracked_in_dom.set(element, true);
         }
         else if (this.inDom(element)) {
+            /* Was in dom but removed */
             this.tracked_in_dom.set(element, false);
             (_b = this.getEvents(element)) === null || _b === void 0 ? void 0 : _b.emit("remove");
         }
@@ -224,7 +226,7 @@ class ObserverTracking {
         }
     }
     constructor() {
-        this.wrap_map = new Map();
+        // private wrap_map: Map<ObservedCallback, ObservedCallback> = new Map();
         this.list = new Set();
         this.events = new Emitter();
         this.observer = new MutationObserver(() => {
@@ -239,6 +241,7 @@ class ObserverTracking {
         });
     }
     cleanupElement(element) {
+        // Do cleanup
         if (ObserverTracking.getEvents(element).all.size == 0) {
             this.list.delete(element);
         }
@@ -263,6 +266,253 @@ class ObserverTracking {
 }
 ObserverTracking.weak_events = new WeakMap();
 ObserverTracking.tracked_in_dom = new WeakMap();
+
+/******************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
+/* global Reflect, Promise, SuppressedError, Symbol */
+
+
+function __rest(s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+}
+
+function __awaiter(thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+}
+
+typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
+    var e = new Error(message);
+    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+};
+
+function camelToKebab(str) {
+    return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+}
+class JssStyle {
+    static parseContents(data) {
+        return Object.entries(data).map(([name, value]) => `${camelToKebab(name)}: ${value}`);
+    }
+    constructor(data) {
+        this.data = data;
+    }
+    resolve(name, data) {
+        const formatted_styles = JssClass.parseContents(data).join("; ");
+        return `${name} { ${formatted_styles} }`;
+    }
+    toString(name) {
+        const _a = this.data, { extend } = _a, data = __rest(_a, ["extend"]);
+        let style = "";
+        style += this.resolve(name, data);
+        if (extend != undefined) {
+            for (const [key, value] of Object.entries(extend)) {
+                style += this.resolve(name + key, value);
+            }
+        }
+        return style;
+    }
+}
+class JssClass extends JssStyle {
+    static parseContents(data) {
+        return Object.entries(data).map(([name, value]) => `${camelToKebab(name)}: ${value}`);
+    }
+    constructor(name, data) {
+        super(data);
+        this.name = name;
+    }
+    resolve(name, data) {
+        const formatted_styles = JssClass.parseContents(data).join("; ");
+        return `${name} { ${formatted_styles} }`;
+    }
+    toString() {
+        return super.toString(this.name);
+    }
+}
+class JssAnimation {
+    constructor(name, data) {
+        this.name = name;
+        this.data = data;
+    }
+    toString() {
+        const formatted_styles = this.data.map(([position, data]) => {
+            const dat = JssClass.parseContents(data);
+            let range = Array.isArray(position)
+                ? position.map(camelToKebab).join("; ")
+                : camelToKebab(position);
+            return `${range} { ${dat} }`;
+        });
+        return `@keyframes ${this.name} { ${formatted_styles.join(" ")} }`;
+    }
+}
+class JCSSStyleManager {
+    constructor(manager) {
+        this.manager = manager;
+        this.counter = 0;
+        this.indexes = new Map();
+        this.list = new Map();
+        this.manager = manager;
+    }
+    call(run) {
+        run(this);
+        return this.manager;
+    }
+    has(name) {
+        return this.list.has(name);
+    }
+    inject(instance) {
+        const index = this.counter++;
+        this.list.set(instance.name, instance);
+        this.indexes.set(instance, index);
+    }
+    add(name, style) {
+        this.inject(new JssClass(name, style));
+        // this.element.sheet?.insertRule(cssClass.toString(), index);
+        return this;
+    }
+    remove(instance) {
+        const index = this.indexes.get(instance);
+        if (index == null) {
+            return false;
+        }
+        else {
+            this.list.delete(instance.name);
+            this.indexes.delete(instance);
+            return true;
+        }
+    }
+    removeByName(name) {
+        const found = this.list.get(name);
+        if (found == null) {
+            return false;
+        }
+        else {
+            return this.remove(found);
+        }
+    }
+}
+class JCSSAnimationManager {
+    constructor(manager) {
+        this.manager = manager;
+        this.counter = 0;
+        this.indexes = new Map();
+        this.list = new Map();
+        this.manager = manager;
+    }
+    call(run) {
+        run(this);
+        return this.manager;
+    }
+    has(name) {
+        return this.list.has(name);
+    }
+    inject(instance) {
+        const index = this.counter++;
+        this.list.set(instance.name, instance);
+        this.indexes.set(instance, index);
+    }
+    add(name, style) {
+        this.inject(new JssAnimation(name, style));
+        // this.element.sheet?.insertRule(cssClass.toString(), index);
+        return this;
+    }
+    remove(instance) {
+        const index = this.indexes.get(instance);
+        if (index == null) {
+            return false;
+        }
+        else {
+            this.list.delete(instance.name);
+            this.indexes.delete(instance);
+            return true;
+        }
+    }
+    removeByName(name) {
+        const found = this.list.get(name);
+        if (found == null) {
+            return false;
+        }
+        else {
+            return this.remove(found);
+        }
+    }
+}
+class JCSS {
+    constructor() {
+        this.element = document.createElement("style");
+        this.style = makeCallableClass(JCSSStyleManager, this);
+        // new JCSSClassManager(this);
+        // animations = new JCSSAnimationManager(this);
+        this.animation = makeCallableClass(JCSSAnimationManager, this);
+        this.inserted_state = false;
+    }
+    insert() {
+        if (this.inserted_state == false) {
+            document.head.appendChild(this.element);
+            this.inserted_state = document.head.contains(this.element);
+            this.build();
+        }
+        return this;
+    }
+    remove() {
+        this.element.remove();
+        this.inserted_state = document.head.contains(this.element);
+        return this;
+    }
+    /**
+     * @deprecated
+     */
+    rebuild() {
+        return this.build();
+    }
+    build() {
+        const classes_string = Array.from(this.style.list.values())
+            .map((instance) => instance.toString())
+            .join("\n");
+        const animations_string = Array.from(this.animation.list.values())
+            .map((instance) => instance.toString())
+            .join("\n");
+        const result = [classes_string, animations_string].join(" ");
+        this.element.innerHTML = result;
+        return this;
+    }
+    getUsageCount() {
+        function selectAndCount(e) {
+            return document.querySelectorAll(e.name).length;
+        }
+        return Array.from(this.style.list.values())
+            .map(selectAndCount)
+            .reduce((accumulator, current) => accumulator + current, 0);
+    }
+    ref(run) {
+        run(this);
+        return this;
+    }
+}
 
 class SubMap {
     constructor() {
@@ -300,6 +550,16 @@ class SubMap {
     }
 }
 
+class VNodeUtilityClass {
+    constructor(node) {
+        this.node = node;
+        this.node = node;
+    }
+    nest(run) {
+        run(this);
+        return this.node;
+    }
+}
 function VNodeExtractEl(node) {
     if ("element" in node) {
         return node.element;
@@ -310,10 +570,12 @@ class PNodeUtil {
     static resetStyles(vnode, to_reset) {
         const options = to_reset.length > 0 ? to_reset : ["content", "style", "class"];
         for (const option of options) {
+            /* Clear inner content */
             if (option === "content") {
                 vnode.element.innerHTML = "";
             }
             else if (option === "style") {
+                /* Clear styles */
                 if (vnode.element instanceof HTMLElement) {
                     const style_ref = vnode.element.style;
                     for (let i = style_ref.length; i--;) {
@@ -323,6 +585,7 @@ class PNodeUtil {
                 }
             }
             else if (option === "class") {
+                /* Clear classes */
                 vnode.element.className = "";
             }
         }
@@ -393,6 +656,7 @@ class ProxynodeTracking {
     }
     static handle(element) {
         var _a, _b;
+        // If it's in dom now but wasn't before
         if (document.body.contains(element)) {
             if (this.inDom(element) != true) {
                 (_a = ProxyNode.getEvents(element)) === null || _a === void 0 ? void 0 : _a.emit("append");
@@ -400,6 +664,7 @@ class ProxynodeTracking {
             this.tracked_in_dom.set(element, true);
         }
         else if (this.inDom(element)) {
+            /* Was in dom but removed */
             this.tracked_in_dom.set(element, false);
             (_b = ProxyNode.getEvents(element)) === null || _b === void 0 ? void 0 : _b.emit("remove");
         }
@@ -430,6 +695,13 @@ class ProxyNode {
             return emitter;
         }
     }
+    // static extractEl(node: PN_Extractable): HTMLElement {
+    // 	if (node instanceof ProxyNode || node instanceof VNode) {
+    // 		return node.element;
+    // 	} else {
+    // 		return node;
+    // 	}
+    // }
     static isNode(el) {
         return el instanceof ProxyNode;
     }
@@ -448,12 +720,17 @@ class ProxyNode {
         const group = ProxyNode.getCallbacksGroup(element);
         return group.get(event);
     }
+    // get call() {
+    // 	return this;
+    // }
     constructor(el) {
         this.listeners = {};
         if (typeof el === "string") {
             this.element = document.createElement(el);
         }
-        else if (el instanceof HTMLElement ||
+        else if (
+        // el instanceof Element ||
+        el instanceof HTMLElement ||
             el instanceof HTMLInputElement)
             this.element = el;
         else if (el instanceof ProxyNode) {
@@ -495,6 +772,7 @@ class ProxyNode {
             this.element.textContent = value;
         }
     }
+    /** @deprecated - removed in the next version */
     get wrapper() {
         return this.ref;
     }
@@ -502,6 +780,7 @@ class ProxyNode {
         run(this);
         return this;
     }
+    //#region //* Default Utils *//
     text(content) {
         this.element.textContent = content;
         return this;
@@ -525,22 +804,42 @@ class ProxyNode {
         this.element = new_node;
         return this;
     }
+    /**
+     * Creates a cloned node
+     */
     clone() {
         return new ProxyNode(this.element.cloneNode(true));
     }
+    /**
+     * Clears inner content
+     */
     clear() {
         this.element.textContent = "";
         return this;
     }
+    /**
+     * Checks if dom contains element
+     */
     exists() {
         return document.body.contains(this.element);
     }
+    /**
+     * Returns a list of child proxy nodes
+     */
     getChildren() {
         return Array.from(this.element.children).map((documentEl) => new ProxyNode(documentEl));
     }
+    /**
+     *
+     * @param to_reset
+     * @returns
+     * @deprecated - Possibly removed in the next version
+     */
     reset(...to_reset) {
         return PNodeUtil.resetStyles(this, to_reset);
     }
+    //#endregion //* Default Utils *//
+    //#region //* Classes *//
     class(...args) {
         this.element.className = args.join(" ");
         return this;
@@ -577,6 +876,8 @@ class ProxyNode {
         status ? this.addClass(className) : this.removeClass(className);
         return this;
     }
+    //#endregion //* Classes *//
+    //#region //* Styles *//
     styles(styles = {}) {
         if (typeof styles != "object") {
             return this;
@@ -590,6 +891,7 @@ class ProxyNode {
                     this.element.style.setProperty(`--${prop_key}`, prop_value);
                 }
             }
+            // @ts-ignore
             this.element.style[key] = value;
         }
         return this;
@@ -603,9 +905,11 @@ class ProxyNode {
         }
         return this;
     }
+    //#endregion //* Styles *//
     getEvents() {
         return ProxyNode.getEvents(this.element);
     }
+    //#region //* Listeners *//
     on(event, callback) {
         if (reserved_events.includes(event)) {
             this.getEvents().on(event, callback);
@@ -672,6 +976,12 @@ class ProxyNode {
         delete this.listeners[key];
         return this;
     }
+    //#endregion //* Listeners *//
+    //#region //* Intervals *//
+    /**
+     *
+     * @deprecated - stop using this dumbass
+     */
     interval(callback, time = 1000, immediate = false) {
         const toCall = () => callback.bind(this)(this, () => clearInterval(temp_interval));
         if (immediate) {
@@ -681,10 +991,15 @@ class ProxyNode {
         this.on("remove", () => clearInterval(temp_interval));
         return this;
     }
+    //#endregion //* Intervals *//
+    //#region //* Random *//
     remove() {
         this.element.remove();
         return this;
     }
+    /**
+     * clears the content and appends
+     */
     setContent(...content) {
         return this.clear().append(...content);
     }
@@ -754,6 +1069,9 @@ class ProxyNode {
         }
         return this;
     }
+    /**
+     * @deprecated - Possibly removed in the next version
+     */
     horizontalScrolling() {
         this.on("wheel", (event) => {
             event.preventDefault();
@@ -781,6 +1099,8 @@ class ProxyNode {
 }
 ProxyNode.stored_listeners = new WeakMap();
 ProxyNode.weak_events = new WeakMap();
+// private static qs = qs;
+// private static qsAll = qsAll;
 ProxyNode.tracking = new ProxynodeTracking();
 ProxyNode.extractEl = VNodeExtractEl;
 function generateProxyNode(el) {
@@ -789,6 +1109,7 @@ function generateProxyNode(el) {
 const newNode = new Proxy({}, {
     get(target, element_tag) {
         return new ProxyNode(document.createElement(element_tag));
+        // generateProxyNode(document.createElement(elementTag));
     },
 });
 function qs(selector, element = document) {
@@ -804,6 +1125,89 @@ var proxynode = {
     generateProxyNode,
     fetch,
 };
+
+function getAllRemovedNodes(node) {
+    const nodes = [node];
+    node.childNodes.forEach((child) => {
+        nodes.push(...getAllRemovedNodes(child));
+    });
+    return nodes;
+}
+class VNodeObserver {
+    inDom(element) {
+        return this.tracked_in_dom.get(element) == true;
+    }
+    constructor() {
+        this.tracked_in_dom = new WeakMap();
+        this.observer = new MutationObserver((mutations) => {
+            const queried = StateTracking.query();
+            for (const mutation of mutations) {
+                let tmp = [];
+                for (const removed of Array.from(mutation.removedNodes)) {
+                    tmp.push(...getAllRemovedNodes(removed));
+                }
+                const removed_query = StateTracking.filterQuery(tmp);
+                queried.push(...removed_query);
+            }
+            for (const node of queried) {
+                const element = node.element;
+                if (document.body.contains(element)) {
+                    if (this.inDom(element) != true) {
+                        VNodeEvents$1.emit(element, "dom-append");
+                    }
+                    this.tracked_in_dom.set(element, true);
+                }
+                else if (this.inDom(element)) {
+                    /* Was in dom but removed */
+                    this.tracked_in_dom.set(element, false);
+                    VNodeEvents$1.emit(element, "dom-remove");
+                }
+            }
+        });
+        this.observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
+    }
+}
+class StateTracking {
+    static initNodeTracking(node) {
+        node.element[this.ref_prop] = new WeakRef(node);
+        // node.element.setAttribute(StateTracking.flag, "");
+        node.attr({
+            [StateTracking.flag]: "",
+        });
+    }
+    static init(options) {
+        const init_cb = (node) => this.initNodeTracking(node);
+        if ((options === null || options === void 0 ? void 0 : options.all) == true) {
+            VNode.events.on("init", init_cb);
+        }
+        const observer = new VNodeObserver();
+        return {
+            observer,
+            destroy() {
+                if ((options === null || options === void 0 ? void 0 : options.all) == true) {
+                    VNode.events.off("init", init_cb);
+                }
+                observer.observer.disconnect();
+            },
+        };
+    }
+    static filterQuery(list) {
+        return list
+            .map((e) => { var _a; return (_a = e === null || e === void 0 ? void 0 : e[StateTracking.ref_prop]) === null || _a === void 0 ? void 0 : _a.deref(); })
+            .filter((e) => e instanceof VNode);
+    }
+    static query() {
+        const found = document.querySelectorAll(`[${StateTracking.flag}]`);
+        return Array.from(found)
+            .map((e) => { var _a; return (_a = e === null || e === void 0 ? void 0 : e[StateTracking.ref_prop]) === null || _a === void 0 ? void 0 : _a.deref(); })
+            .filter((e) => e instanceof VNode);
+    }
+}
+StateTracking.flag = "__vnode_e";
+StateTracking.ref_prop = "__vnode";
 
 class VNodeAnimation {
     constructor(node, styles, options) {
@@ -822,16 +1226,6 @@ class VNodeAnimation {
         }
     }
 }
-class VNodeUtilityClass {
-    constructor(node) {
-        this.node = node;
-        this.node = node;
-    }
-    nest(run) {
-        run(this);
-        return this.node;
-    }
-}
 class VNodeStyle extends VNodeUtilityClass {
     call(value = {}) {
         if (typeof value == "object") {
@@ -842,6 +1236,9 @@ class VNodeStyle extends VNodeUtilityClass {
         }
         return this.node;
     }
+    // public call(...args: Parameters<this["update"]>) {
+    // 	return this.update(...args).node;
+    // }
     update(styles = {}) {
         P_VNodeUtil.setStyles(this.node.element, styles);
         return this;
@@ -912,70 +1309,117 @@ class VNodeClasses extends VNodeUtilityClass {
         }
         return this;
     }
+    /**
+     * @deprecated
+     */
     toggleClass(class_name, status = !this.has(class_name)) {
         return this.toggle(class_name, status);
     }
 }
-class VNodeEvents extends VNodeUtilityClass {
-    static getEvents(element) {
-        const existing = VNodeEvents.weak_events.get(element);
-        if (existing) {
-            return existing;
-        }
-        else {
-            const emitter = new Emitter();
-            VNodeEvents.weak_events.set(element, emitter);
-            return emitter;
-        }
+let VNodeEventCollection$1 = class VNodeEventCollection {
+    static isReserved(event) {
+        return this.reserved_events.includes(event);
     }
-    static getCallbacksGroup(element) {
-        const got = VNodeEvents.stored_listeners.get(element);
-        if (got) {
-            return got;
-        }
-        else {
-            const submap = new SubMap();
-            VNodeEvents.stored_listeners.set(element, submap);
-            return submap;
-        }
-    }
-    static on(element, event, callback) {
-        if (VNodeEvents.reserved_events.includes(event)) {
-            VNodeEvents.getEvents(element).on(event, callback);
+    // 	private static isReserved(event: string): event is typeof VNodeEventCollection["reserved_events"][number] {
+    // 	return this.reserved_events.includes(event as any);
+    // }
+    static on(COLLECTION, event, callback) {
+        if (this.isReserved(event)) {
+            // if (event == "dom-append" || event == "dom-remove") {
+            // }
+            COLLECTION.events.on(event, callback);
         }
         else {
             if (event == "keypress" || event == "keydown" || event == "keyup") {
-                P_VNodeUtil.attr(element, { tabIndex: 0 });
+                P_VNodeUtil.attr(COLLECTION.element, { tabIndex: 0 });
             }
-            VNodeEvents.getCallbacksGroup(element).add(event, callback);
-            element.addEventListener(event, callback);
+            COLLECTION.listeners.add(event, callback);
+            COLLECTION.element.addEventListener(event, callback);
         }
     }
-    static off(element, event, callback) {
-        if (VNodeEvents.reserved_events.includes(event)) {
-            VNodeEvents.getEvents(element).off(event, callback);
+    static off(COLLECTION, event, callback) {
+        if (this.isReserved(event)) {
+            COLLECTION.events.off(event, callback);
         }
         else {
-            const group = VNodeEvents.getCallbacksGroup(element);
-            if (callback) {
-                group.remove(event, callback);
-                element.removeEventListener(event, callback);
-            }
-            else {
+            const group = COLLECTION.listeners;
+            if (callback == undefined) {
                 for (const callback of group.get(event)) {
-                    element.removeEventListener(event, callback);
+                    COLLECTION.element.removeEventListener(event, callback);
                 }
                 group.removeAll(event);
             }
+            else {
+                group.remove(event, callback);
+                COLLECTION.element.removeEventListener(event, callback);
+            }
         }
     }
-    static once(element, event, callback) {
+    static once(COLLECTION, event, callback) {
         const once_callback = (...args) => {
-            this.off(element, event, once_callback);
+            this.off(COLLECTION, event, once_callback);
             callback(...args);
             return void 0;
         };
-        this.on(element, event, (...args) => once_callback(...args));
+        this.on(COLLECTION, event, (...args) => once_callback(...args));
+    }
+    static emit(COLLECTION, event, ...args) {
+        if (this.isReserved(event)) {
+            COLLECTION.events.emit(event, ...args);
+        }
+        else {
+            COLLECTION.listeners.add(event, ...args);
+            COLLECTION.element.dispatchEvent(new CustomEvent(event, { detail: args }));
+        }
+    }
+    static clear(COLLECTION) {
+        for (const event of COLLECTION.listeners.all.keys()) {
+            // Delete off whole event instead of each individual callback
+            this.off(COLLECTION, event);
+        }
+        COLLECTION.events.all.clear();
+    }
+    constructor(ref) {
+        this.listeners = new SubMap();
+        this.events = new Emitter();
+        this.element = ref;
+    }
+};
+VNodeEventCollection$1.reserved_events = [
+    "dom-append",
+    "dom-remove",
+];
+let VNodeEvents$1 = class VNodeEvents extends VNodeUtilityClass {
+    static getAlways(element) {
+        const found = this.c_events.get(element);
+        if (found != undefined) {
+            return found;
+        }
+        const created = new VNodeEventCollection$1(element);
+        this.c_events.set(element, created);
+        return created;
+    }
+    static on(element, event, callback) {
+        VNodeEventCollection$1.on(this.getAlways(element), event, callback);
+    }
+    static off(element, event, callback) {
+        VNodeEventCollection$1.off(this.getAlways(element), event, callback);
+    }
+    static once(element, event, callback) {
+        VNodeEventCollection$1.once(this.getAlways(element), event, callback);
+    }
+    static emit(element, event, ...args) {
+        const COLLECTION = this.c_events.get(element);
+        if (COLLECTION == undefined)
+            return;
+        VNodeEventCollection$1.emit(COLLECTION, event, ...args);
+    }
+    static clear(element) {
+        const COLLECTION = this.c_events.get(element);
+        if (COLLECTION == undefined)
+            return;
+        VNodeEventCollection$1.clear(COLLECTION);
+        this.c_events.delete(COLLECTION.element);
     }
     constructor(node) {
         super(node);
@@ -985,6 +1429,9 @@ class VNodeEvents extends VNodeUtilityClass {
         return this.nest(...args);
     }
     on(event, callback) {
+        if (event == "dom-append" || event == "dom-remove") {
+            StateTracking.initNodeTracking(this.node);
+        }
         VNodeEvents.on(this.element, event, callback);
         return this;
     }
@@ -996,54 +1443,57 @@ class VNodeEvents extends VNodeUtilityClass {
         VNodeEvents.once(this.element, event, callback);
         return this;
     }
-}
-VNodeEvents.reserved_events = [
-    "append",
-    "remove",
-];
-VNodeEvents.stored_listeners = new WeakMap();
-VNodeEvents.weak_events = new WeakMap();
+    clear() {
+        VNodeEvents.clear(this.element);
+    }
+};
+VNodeEvents$1.c_events = new WeakMap();
 
 var _a;
 class VNode {
-    static from(el) {
+    static getElement(el) {
         if (typeof el === "string") {
-            return new VNode(document.createElement(el));
+            return document.createElement(el);
         }
         else if (el instanceof HTMLElement ||
             el instanceof HTMLInputElement) {
-            return new VNode(el);
+            return el;
         }
         else if (el instanceof VNode) {
-            return new VNode(el.element);
+            return el.element;
         }
         else if (el instanceof ProxyNode) {
-            return new VNode(el.element);
+            return el.element;
         }
         else {
             throw new Error("Invalid element");
         }
     }
+    static from(el) {
+        const element = VNode.getElement(el);
+        return new VNode(element);
+    }
     constructor(element) {
         trapValue(this, "style", () => makeCallableClass(VNodeStyle, this));
         trapValue(this, "class", () => makeCallableClass(VNodeClasses, this));
-        trapValue(this, "events", () => makeCallableClass(VNodeEvents, this));
+        trapValue(this, "events", () => makeCallableClass(VNodeEvents$1, this));
         if (typeof element === "string") {
             this.element = document.createElement(element);
         }
         else {
-            this.element = VNode.extractEl(element);
+            this.element = VNode.Util.extractEl(element);
         }
         if (VNode.send_events === true) {
-            VNode.events.emit("create", this);
+            VNode.events.emit("add", this);
         }
+        VNode.events.emit("init", this);
     }
     attr(attributes = {}) {
         P_VNodeUtil.attr(this.element, attributes);
         return this;
     }
     swap(node) {
-        const new_node = VNode.extractEl(node);
+        const new_node = VNode.Util.extractEl(node);
         this.element.replaceWith(new_node);
         this.element = new_node;
         return this;
@@ -1079,7 +1529,8 @@ class VNode {
         return this.element.getBoundingClientRect();
     }
     value(value = undefined) {
-        if (this.element instanceof HTMLInputElement) {
+        if (this.element instanceof HTMLInputElement ||
+            this.element instanceof HTMLSelectElement) {
             if (value == undefined) {
                 return this.element.value;
             }
@@ -1128,23 +1579,29 @@ class VNode {
     }
     remove() {
         this.element.remove();
+        // if (VNode.send_events === true) {
+        // 	VNode.events.emit("remove", this);
+        // }
         return this;
     }
     setContent(...content) {
         return this.clear().append(...content);
     }
+    /**
+     * Clears inner content
+     */
     clear() {
         this.element.textContent = "";
         return this;
     }
-    setStyles(styles) {
-        this.style.update(styles);
-        return this;
-    }
-    setClasses(...classes) {
-        this.class.set(...classes);
-        return this;
-    }
+    // public setStyles(styles: StyleDeclarationWithProps) {
+    // 	this.style.update(styles);
+    // 	return this;
+    // }
+    // public setClasses(...classes: string[]) {
+    // 	this.class.set(...classes);
+    // 	return this;
+    // }
     inDom(parent = document.body) {
         return parent.contains(this.element);
     }
@@ -1164,42 +1621,114 @@ VNode.Util = (_a = class VNodeUtilExtend {
             });
         }
         static getChildren(extractable) {
-            const extracted = this.extractEl(extractable);
+            const extracted = VNodeExtractEl(extractable);
             return Array.from(extracted.children).map((document_el) => new VNode(document_el));
         }
     },
     _a.extractEl = VNodeExtractEl,
     _a);
 VNode.indexing = new Map();
+/**
+ * Replacement for 'newNode' on ProxyNode Utilities
+ */
 VNode.new = new Proxy({}, {
     get(target, element_tag) {
         return new VNode(document.createElement(element_tag));
+        // generateProxyNode(document.createElement(elementTag));
     },
 });
+/**
+ * @deprecated Use VNode.Util.extractEl
+ */
 VNode.extractEl = VNodeExtractEl;
 VNode.send_events = false;
 VNode.events = new Emitter();
 
-class StyledVNode extends VNode {
-    constructor(type, instance) {
-        super(type);
-        this.instance = instance;
-        this.instance = instance;
-        this.instance.insert();
+class StyledNodeManager {
+    constructor(id) {
+        this.id = id;
+        this.class = new JssClass("." + this.getClassName(), {});
     }
-    appendTo(obj, direction) {
-        super.appendTo(obj, direction);
-        this.instance.insert();
-        return this;
-    }
-    remove() {
-        super.remove();
-        if (this.instance.getUsageCount() === 0) {
-            this.instance.remove();
-        }
-        return this;
+    /**
+     * Returns the generated classname prefixed by vns_
+     * which stands for Virtual Node Style -
+     */
+    getClassName() {
+        return `vns_${this.id.toString(16)}`;
     }
 }
+class StyledVNode extends VNode {
+    static getConstructor(ref) {
+        return ref.constructor;
+    }
+    static findOrCreate(c, styles) {
+        const is_new = StyledVNode.managers.get(c) == undefined;
+        const manager = this.getManager(c);
+        if (is_new) {
+            if (styles instanceof JssStyle) {
+                manager.class.data = styles.data;
+            }
+            else {
+                manager.class.data = styles;
+            }
+            this.sheet.style.inject(manager.class);
+            this.sheet.build();
+        }
+        return manager.getClassName();
+    }
+    static connect(class_ref, styles) {
+        const c = this.getConstructor(class_ref);
+        if (styles == undefined) {
+            const manager = StyledVNode.managers.get(c);
+            if (manager != undefined) {
+                class_ref.class.add(manager.getClassName());
+            }
+        }
+        else {
+            const class_name = this.findOrCreate(c, styles);
+            class_ref.class.add(class_name);
+        }
+    }
+    static getManager(c) {
+        let manager = StyledVNode.managers.get(c);
+        if (manager == undefined) {
+            const id = ++StyledVNode.class_index;
+            manager = new StyledNodeManager(id);
+            StyledVNode.managers.set(c, manager);
+        }
+        return manager;
+    }
+    /** Destroys the class and it's relations for a vnode class */
+    static destroy(class_ref) {
+        const c = this.getConstructor(class_ref);
+        const manager = this.getManager(c);
+        const jss_class = this.sheet.style.list.get(manager.class.name);
+        if (jss_class) {
+            this.sheet.style.remove(jss_class);
+            this.sheet.build();
+        }
+        StyledVNode.managers.delete(c);
+    }
+    static init() {
+        this.sheet.insert();
+    }
+    static validStyles(styles) {
+        return styles;
+    }
+    constructor(element) {
+        super(element);
+        StyledVNode.connect(this, this.getConstructor().styles);
+    }
+    getConstructor() {
+        return this.constructor;
+    }
+}
+StyledVNode.managers = new Map();
+StyledVNode.class_index = 0;
+/** Should not be changed */
+StyledVNode.sheet = new JCSS();
+/** May be overridden by extending the class */
+StyledVNode.styles = {};
 class JCSSTracker {
     constructor(instance, observer) {
         this.instance = instance;
@@ -1225,171 +1754,242 @@ class JCSSTracker {
     }
 }
 
-function camelToKebab(str) {
-    return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+class VNodeEventGroup {
+    constructor(node) {
+        this.node = node;
+        this.map = new Map();
+        this.node = node;
+    }
+    on(event, callback) {
+        this.map.set(event, callback);
+        this.node.events.on(event, callback);
+        return this;
+    }
+    off(event, callback) {
+        this.map.delete(event);
+        this.node.events.off(event, callback);
+        return this;
+    }
+    clear() {
+        for (const [event, callback] of this.map.entries()) {
+            this.off(event, callback);
+        }
+        return this;
+    }
 }
-class JssClass {
-    static parseContents(data) {
-        return Object.entries(data).map(([name, value]) => `${camelToKebab(name)}: ${value}`);
+class VNodeEventCollection {
+    static isReserved(event) {
+        return this.reserved_events.includes(event);
     }
-    constructor(name, data) {
-        this.name = name;
-        this.data = data;
+    static on(COLLECTION, event, callback) {
+        if (this.isReserved(event)) {
+            // if (event == "dom-append" || event == "dom-remove") {
+            // }
+            COLLECTION.events.on(event, callback);
+        }
+        else {
+            if (event == "keypress" || event == "keydown" || event == "keyup") {
+                P_VNodeUtil.attr(COLLECTION.element, { tabIndex: 0 });
+            }
+            COLLECTION.listeners.add(event, callback);
+            COLLECTION.element.addEventListener(event, callback);
+        }
     }
-    toString() {
-        const formatted_styles = JssClass.parseContents(this.data);
-        return `${this.name} { ${formatted_styles.join("; ")} }`;
+    static off(COLLECTION, event, callback) {
+        if (this.isReserved(event)) {
+            COLLECTION.events.off(event, callback);
+        }
+        else {
+            const group = COLLECTION.listeners;
+            if (callback == undefined) {
+                for (const callback of group.get(event)) {
+                    COLLECTION.element.removeEventListener(event, callback);
+                }
+                group.removeAll(event);
+            }
+            else {
+                group.remove(event, callback);
+                COLLECTION.element.removeEventListener(event, callback);
+            }
+        }
+    }
+    static once(COLLECTION, event, callback) {
+        const once_callback = (...args) => {
+            this.off(COLLECTION, event, once_callback);
+            callback(...args);
+            return void 0;
+        };
+        this.on(COLLECTION, event, (...args) => once_callback(...args));
+    }
+    static emit(COLLECTION, event, ...args) {
+        if (this.isReserved(event)) {
+            COLLECTION.events.emit(event, ...args);
+        }
+        else {
+            COLLECTION.listeners.add(event, ...args);
+            COLLECTION.element.dispatchEvent(new CustomEvent(event, { detail: args }));
+        }
+    }
+    static clear(COLLECTION) {
+        for (const event of COLLECTION.listeners.all.keys()) {
+            // Delete off whole event instead of each individual callback
+            this.off(COLLECTION, event);
+        }
+        COLLECTION.events.all.clear();
+    }
+    constructor(ref) {
+        this.listeners = new SubMap();
+        this.events = new Emitter();
+        this.element = ref;
     }
 }
-class JssAnimation {
-    constructor(name, data) {
-        this.name = name;
-        this.data = data;
+VNodeEventCollection.reserved_events = [
+    "dom-append",
+    "dom-remove",
+];
+class VNodeEvents extends VNodeUtilityClass {
+    static getAlways(element) {
+        const found = this.c_events.get(element);
+        if (found != undefined) {
+            return found;
+        }
+        const created = new VNodeEventCollection(element);
+        this.c_events.set(element, created);
+        return created;
     }
-    toString() {
-        const formatted_styles = this.data.map(([position, data]) => {
-            const dat = JssClass.parseContents(data);
-            let range = Array.isArray(position)
-                ? position.map(camelToKebab).join(", ")
-                : camelToKebab(position);
-            return `${range} { ${dat} }`;
+    static on(element, event, callback) {
+        VNodeEventCollection.on(this.getAlways(element), event, callback);
+    }
+    static off(element, event, callback) {
+        VNodeEventCollection.off(this.getAlways(element), event, callback);
+    }
+    static once(element, event, callback) {
+        VNodeEventCollection.once(this.getAlways(element), event, callback);
+    }
+    static emit(element, event, ...args) {
+        const COLLECTION = this.c_events.get(element);
+        if (COLLECTION == undefined)
+            return;
+        VNodeEventCollection.emit(COLLECTION, event, ...args);
+    }
+    static clear(element) {
+        const COLLECTION = this.c_events.get(element);
+        if (COLLECTION == undefined)
+            return;
+        VNodeEventCollection.clear(COLLECTION);
+        this.c_events.delete(COLLECTION.element);
+    }
+    constructor(node) {
+        super(node);
+        this.element = this.node.element;
+    }
+    call(...args) {
+        return this.nest(...args);
+    }
+    on(event, callback) {
+        if (event == "dom-append" || event == "dom-remove") {
+            StateTracking.initNodeTracking(this.node);
+        }
+        VNodeEvents.on(this.element, event, callback);
+        return this;
+    }
+    off(event, callback) {
+        VNodeEvents.off(this.element, event, callback);
+        return this;
+    }
+    once(event, callback) {
+        VNodeEvents.once(this.element, event, callback);
+        return this;
+    }
+    clear() {
+        VNodeEvents.clear(this.element);
+    }
+}
+VNodeEvents.c_events = new WeakMap();
+
+class Fullscreen {
+    static exitFullscreen() {
+        if (document.exitFullscreen) {
+            /* Default */ document.exitFullscreen();
+        }
+        // else if (document?.webkitExitFullscreen) /* Safari */
+        // 	document.webkitExitFullscreen();
+        // else if (document?.mozCancelFullScreen) /* Firefox */
+        // 	document.mozCancelFullScreen();
+        // else if (document?.msExitFullscreen) /* IE/Edge */
+        // 	document.msExitFullscreen();
+    }
+    static isFullscreen(element) {
+        return (document.fullscreenElement === element //||
+        // document?.webkitFullscreenElement === element ||
+        // document?.mozFullscreenElement === element ||
+        // document?.msFullscreenElement === element
+        );
+    }
+    static enterFullscreen(element) {
+        if (element.requestFullscreen) {
+            /* Default */ element.requestFullscreen();
+        }
+        // else if (element.webkitRequestFullscreen) /* Safari  */
+        // 	element.webkitRequestFullscreen();
+        // else if (element.mozRequestFullscreen) /* Firefox */
+        // 	element.mozRequestFullscreen();
+        // else if (element.msRequestFullscreen) /* IE11 */
+        // 	element.msRequestFullscreen();
+        return element;
+    }
+}
+class PictureApi {
+    static createWindow(options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let sub_window = window.open("", "Test", "popup");
+            if (sub_window != undefined) {
+                if ((options === null || options === void 0 ? void 0 : options.width) != undefined && options.height != undefined) {
+                    sub_window.resizeTo(options.width, options.height);
+                }
+            }
+            return sub_window !== null && sub_window !== void 0 ? sub_window : undefined;
         });
-        return `@keyframes ${this.name} { ${formatted_styles.join(" ")} }`;
     }
-}
-class JCSSClassManager {
-    constructor(manager) {
-        this.manager = manager;
-        this.counter = 0;
-        this.indexes = new Map();
-        this.list = new Map();
-        this.manager = manager;
+    static createPictureWindow(options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const dpip = window.documentPictureInPicture;
+            // Early return if there's already a Picture-in-Picture window open
+            if (dpip == undefined) {
+                return this.createWindow(options);
+            }
+            // Open a Picture-in-Picture window.
+            const pip_window = yield dpip.requestWindow({
+                width: options === null || options === void 0 ? void 0 : options.width,
+                height: options === null || options === void 0 ? void 0 : options.height,
+            });
+            return pip_window;
+        });
     }
-    call(run) {
-        run(this);
-        return this;
-    }
-    has(name) {
-        return this.list.has(name);
-    }
-    inject(instance) {
-        const index = this.counter++;
-        this.list.set(instance.name, instance);
-        this.indexes.set(instance, index);
-    }
-    add(name, style) {
-        this.inject(new JssClass(name, style));
-        return this;
-    }
-    remove(instance) {
-        const index = this.indexes.get(instance);
-        if (index == null) {
-            return false;
-        }
-        else {
-            this.list.delete(instance.name);
-            this.indexes.delete(instance);
-            return true;
-        }
-    }
-    removeByName(name) {
-        const found = this.list.get(name);
-        if (found == null) {
-            return false;
-        }
-        else {
-            return this.remove(found);
-        }
-    }
-}
-class JCSSAnimationManager {
-    constructor(manager) {
-        this.manager = manager;
-        this.counter = 0;
-        this.indexes = new Map();
-        this.list = new Map();
-        this.manager = manager;
-    }
-    call(run) {
-        run(this);
-        return this;
-    }
-    has(name) {
-        return this.list.has(name);
-    }
-    inject(instance) {
-        const index = this.counter++;
-        this.list.set(instance.name, instance);
-        this.indexes.set(instance, index);
-    }
-    add(name, style) {
-        this.inject(new JssAnimation(name, style));
-        return this;
-    }
-    remove(instance) {
-        const index = this.indexes.get(instance);
-        if (index == null) {
-            return false;
-        }
-        else {
-            this.list.delete(instance.name);
-            this.indexes.delete(instance);
-            return true;
-        }
-    }
-    removeByName(name) {
-        const found = this.list.get(name);
-        if (found == null) {
-            return false;
-        }
-        else {
-            return this.remove(found);
-        }
-    }
-}
-class JCSS {
-    constructor() {
-        this.element = document.createElement("style");
-        this.style = makeCallableClass(JCSSClassManager, this);
-        this.animation = makeCallableClass(JCSSAnimationManager, this);
-        this.inserted_state = false;
-    }
-    insert() {
-        if (this.inserted_state == false) {
-            document.head.appendChild(this.element);
-            this.inserted_state = document.head.contains(this.element);
-            this.rebuild();
-        }
-        return this;
-    }
-    remove() {
-        this.element.remove();
-        this.inserted_state = document.head.contains(this.element);
-        return this;
-    }
-    rebuild() {
-        const classes_string = Array.from(this.style.list.values())
-            .map((instance) => instance.toString())
-            .join("\n");
-        const animations_string = Array.from(this.animation.list.values())
-            .map((instance) => instance.toString())
-            .join("\n");
-        const result = [classes_string, animations_string].join(" ");
-        this.element.innerHTML = result;
-        return this;
-    }
-    getUsageCount() {
-        function selectAndCount(e) {
-            return document.querySelectorAll(e.name).length;
-        }
-        return Array.from(this.style.list.values())
-            .map(selectAndCount)
-            .reduce((accumulator, current) => accumulator + current, 0);
-    }
-    ref(run) {
-        run(this);
-        return this;
+    static cloneWindowStyles(from, to) {
+        Array.from(from.document.styleSheets).forEach((styleSheet) => {
+            try {
+                const css_rules = Array.from(styleSheet.cssRules)
+                    .map((rule) => rule.cssText)
+                    .join("");
+                const style = from.document.createElement("style");
+                style.textContent = css_rules;
+                to.document.head.appendChild(style);
+            }
+            catch (e) {
+                const link = from.document.createElement("link");
+                link.rel = "stylesheet";
+                link.type = styleSheet.type;
+                link.media = styleSheet.media;
+                link.href = styleSheet.href;
+                to.document.head.appendChild(link);
+            }
+        });
     }
 }
 
-export { JCSS, JCSSTracker, ObserverTracking, ProxyNode, StyledVNode, VNode, proxynode as default, generateProxyNode, newNode, qs, qsAll };
+var experimental = /*#__PURE__*/Object.freeze({
+    __proto__: null
+});
+
+export { experimental as Experimental, Fullscreen, JCSS, JCSSTracker, JssAnimation, JssClass, JssStyle, ObserverTracking, PictureApi as Picture, ProxyNode, StateTracking, StyledVNode, VNode, VNodeEventGroup, proxynode as default, generateProxyNode, newNode, qs, qsAll };

@@ -8,6 +8,7 @@ class ObserverTracking {
     }
     static handle(element) {
         var _a, _b;
+        // If it's in dom now but wasn't before
         if (document.body.contains(element)) {
             if (this.inDom(element) != true) {
                 (_a = this.getEvents(element)) === null || _a === void 0 ? void 0 : _a.emit("append");
@@ -15,6 +16,7 @@ class ObserverTracking {
             this.tracked_in_dom.set(element, true);
         }
         else if (this.inDom(element)) {
+            /* Was in dom but removed */
             this.tracked_in_dom.set(element, false);
             (_b = this.getEvents(element)) === null || _b === void 0 ? void 0 : _b.emit("remove");
         }
@@ -31,7 +33,7 @@ class ObserverTracking {
         }
     }
     constructor() {
-        this.wrap_map = new Map();
+        // private wrap_map: Map<ObservedCallback, ObservedCallback> = new Map();
         this.list = new Set();
         this.events = new lib_1.Emitter();
         this.observer = new MutationObserver(() => {
@@ -46,6 +48,7 @@ class ObserverTracking {
         });
     }
     cleanupElement(element) {
+        // Do cleanup
         if (ObserverTracking.getEvents(element).all.size == 0) {
             this.list.delete(element);
         }

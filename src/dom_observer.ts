@@ -47,7 +47,7 @@ export class ObserverTracking {
 
 	private static tracked_in_dom: WeakMap<HTMLElement, boolean> =
 		new WeakMap();
-	private wrap_map: Map<ObservedCallback, ObservedCallback> = new Map();
+	// private wrap_map: Map<ObservedCallback, ObservedCallback> = new Map();
 
 	list = new Set<HTMLElement>();
 	observer: MutationObserver;

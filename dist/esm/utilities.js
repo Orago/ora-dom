@@ -1,3 +1,13 @@
+export class VNodeUtilityClass {
+    constructor(node) {
+        this.node = node;
+        this.node = node;
+    }
+    nest(run) {
+        run(this);
+        return this.node;
+    }
+}
 export function VNodeExtractEl(node) {
     if ("element" in node) {
         return node.element;
@@ -8,10 +18,12 @@ export class PNodeUtil {
     static resetStyles(vnode, to_reset) {
         const options = to_reset.length > 0 ? to_reset : ["content", "style", "class"];
         for (const option of options) {
+            /* Clear inner content */
             if (option === "content") {
                 vnode.element.innerHTML = "";
             }
             else if (option === "style") {
+                /* Clear styles */
                 if (vnode.element instanceof HTMLElement) {
                     const style_ref = vnode.element.style;
                     for (let i = style_ref.length; i--;) {
@@ -21,6 +33,7 @@ export class PNodeUtil {
                 }
             }
             else if (option === "class") {
+                /* Clear classes */
                 vnode.element.className = "";
             }
         }

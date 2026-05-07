@@ -4,15 +4,16 @@
         if (v !== undefined) module.exports = v;
     }
     else if (typeof define === "function" && define.amd) {
-        define(["require", "exports", "@orago/lib", "./submap.js", "./utilities.js"], factory);
+        define(["require", "exports", "@orago/lib", "../submap.js", "../utilities.js", "./vnode_tracking.js"], factory);
     }
 })(function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.VNodeEvents = exports.VNodeClasses = exports.VNodeStyle = void 0;
     const lib_1 = require("@orago/lib");
-    const submap_js_1 = require("./submap.js");
-    const utilities_js_1 = require("./utilities.js");
+    const submap_js_1 = require("../submap.js");
+    const utilities_js_1 = require("../utilities.js");
+    const vnode_tracking_js_1 = require("./vnode_tracking.js");
     class VNodeAnimation {
         constructor(node, styles, options) {
             this.node = node;
@@ -30,17 +31,7 @@
             }
         }
     }
-    class VNodeUtilityClass {
-        constructor(node) {
-            this.node = node;
-            this.node = node;
-        }
-        nest(run) {
-            run(this);
-            return this.node;
-        }
-    }
-    class VNodeStyle extends VNodeUtilityClass {
+    class VNodeStyle extends utilities_js_1.VNodeUtilityClass {
         call(value = {}) {
             if (typeof value == "object") {
                 return this.update(value).node;
@@ -50,6 +41,9 @@
             }
             return this.node;
         }
+        // public call(...args: Parameters<this["update"]>) {
+        // 	return this.update(...args).node;
+        // }
         update(styles = {}) {
             utilities_js_1.P_VNodeUtil.setStyles(this.node.element, styles);
             return this;
@@ -63,7 +57,7 @@
         }
     }
     exports.VNodeStyle = VNodeStyle;
-    class VNodeClasses extends VNodeUtilityClass {
+    class VNodeClasses extends utilities_js_1.VNodeUtilityClass {
         static addClasses(element, args) {
             for (const arg of args) {
                 if (arg.includes(" ")) {
@@ -121,71 +115,118 @@
             }
             return this;
         }
+        /**
+         * @deprecated
+         */
         toggleClass(class_name, status = !this.has(class_name)) {
             return this.toggle(class_name, status);
         }
     }
     exports.VNodeClasses = VNodeClasses;
-    class VNodeEvents extends VNodeUtilityClass {
-        static getEvents(element) {
-            const existing = VNodeEvents.weak_events.get(element);
-            if (existing) {
-                return existing;
-            }
-            else {
-                const emitter = new lib_1.Emitter();
-                VNodeEvents.weak_events.set(element, emitter);
-                return emitter;
-            }
+    class VNodeEventCollection {
+        static isReserved(event) {
+            return this.reserved_events.includes(event);
         }
-        static getCallbacksGroup(element) {
-            const got = VNodeEvents.stored_listeners.get(element);
-            if (got) {
-                return got;
-            }
-            else {
-                const submap = new submap_js_1.SubMap();
-                VNodeEvents.stored_listeners.set(element, submap);
-                return submap;
-            }
-        }
-        static on(element, event, callback) {
-            if (VNodeEvents.reserved_events.includes(event)) {
-                VNodeEvents.getEvents(element).on(event, callback);
+        // 	private static isReserved(event: string): event is typeof VNodeEventCollection["reserved_events"][number] {
+        // 	return this.reserved_events.includes(event as any);
+        // }
+        static on(COLLECTION, event, callback) {
+            if (this.isReserved(event)) {
+                // if (event == "dom-append" || event == "dom-remove") {
+                // }
+                COLLECTION.events.on(event, callback);
             }
             else {
                 if (event == "keypress" || event == "keydown" || event == "keyup") {
-                    utilities_js_1.P_VNodeUtil.attr(element, { tabIndex: 0 });
+                    utilities_js_1.P_VNodeUtil.attr(COLLECTION.element, { tabIndex: 0 });
                 }
-                VNodeEvents.getCallbacksGroup(element).add(event, callback);
-                element.addEventListener(event, callback);
+                COLLECTION.listeners.add(event, callback);
+                COLLECTION.element.addEventListener(event, callback);
             }
         }
-        static off(element, event, callback) {
-            if (VNodeEvents.reserved_events.includes(event)) {
-                VNodeEvents.getEvents(element).off(event, callback);
+        static off(COLLECTION, event, callback) {
+            if (this.isReserved(event)) {
+                COLLECTION.events.off(event, callback);
             }
             else {
-                const group = VNodeEvents.getCallbacksGroup(element);
-                if (callback) {
-                    group.remove(event, callback);
-                    element.removeEventListener(event, callback);
-                }
-                else {
+                const group = COLLECTION.listeners;
+                if (callback == undefined) {
                     for (const callback of group.get(event)) {
-                        element.removeEventListener(event, callback);
+                        COLLECTION.element.removeEventListener(event, callback);
                     }
                     group.removeAll(event);
                 }
+                else {
+                    group.remove(event, callback);
+                    COLLECTION.element.removeEventListener(event, callback);
+                }
             }
         }
-        static once(element, event, callback) {
+        static once(COLLECTION, event, callback) {
             const once_callback = (...args) => {
-                this.off(element, event, once_callback);
+                this.off(COLLECTION, event, once_callback);
                 callback(...args);
                 return void 0;
             };
-            this.on(element, event, (...args) => once_callback(...args));
+            this.on(COLLECTION, event, (...args) => once_callback(...args));
+        }
+        static emit(COLLECTION, event, ...args) {
+            if (this.isReserved(event)) {
+                COLLECTION.events.emit(event, ...args);
+            }
+            else {
+                COLLECTION.listeners.add(event, ...args);
+                COLLECTION.element.dispatchEvent(new CustomEvent(event, { detail: args }));
+            }
+        }
+        static clear(COLLECTION) {
+            for (const event of COLLECTION.listeners.all.keys()) {
+                // Delete off whole event instead of each individual callback
+                this.off(COLLECTION, event);
+            }
+            COLLECTION.events.all.clear();
+        }
+        constructor(ref) {
+            this.listeners = new submap_js_1.SubMap();
+            this.events = new lib_1.Emitter();
+            this.element = ref;
+        }
+    }
+    VNodeEventCollection.reserved_events = [
+        "dom-append",
+        "dom-remove",
+    ];
+    class VNodeEvents extends utilities_js_1.VNodeUtilityClass {
+        static getAlways(element) {
+            const found = this.c_events.get(element);
+            if (found != undefined) {
+                return found;
+            }
+            const created = new VNodeEventCollection(element);
+            this.c_events.set(element, created);
+            return created;
+        }
+        static on(element, event, callback) {
+            VNodeEventCollection.on(this.getAlways(element), event, callback);
+        }
+        static off(element, event, callback) {
+            VNodeEventCollection.off(this.getAlways(element), event, callback);
+        }
+        static once(element, event, callback) {
+            VNodeEventCollection.once(this.getAlways(element), event, callback);
+        }
+        static emit(element, event, ...args) {
+            const COLLECTION = this.c_events.get(element);
+            if (COLLECTION == undefined)
+                return;
+            VNodeEventCollection.emit(COLLECTION, event, ...args);
+        }
+        static clear(element) {
+            const COLLECTION = this.c_events.get(element);
+            if (COLLECTION == undefined)
+                return;
+            VNodeEventCollection.clear(COLLECTION);
+            this.c_events.delete(COLLECTION.element);
         }
         constructor(node) {
             super(node);
@@ -195,6 +236,9 @@
             return this.nest(...args);
         }
         on(event, callback) {
+            if (event == "dom-append" || event == "dom-remove") {
+                vnode_tracking_js_1.StateTracking.initNodeTracking(this.node);
+            }
             VNodeEvents.on(this.element, event, callback);
             return this;
         }
@@ -206,12 +250,10 @@
             VNodeEvents.once(this.element, event, callback);
             return this;
         }
+        clear() {
+            VNodeEvents.clear(this.element);
+        }
     }
     exports.VNodeEvents = VNodeEvents;
-    VNodeEvents.reserved_events = [
-        "append",
-        "remove",
-    ];
-    VNodeEvents.stored_listeners = new WeakMap();
-    VNodeEvents.weak_events = new WeakMap();
+    VNodeEvents.c_events = new WeakMap();
 });

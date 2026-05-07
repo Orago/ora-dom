@@ -50,13 +50,27 @@ type Kuh = Record<string, ReturnType<Function["bind"]>>;
  */
 export type VNodeListeners = Record<string, Kuh>;
 
+/**
+ * Of which an html element can be resolved
+ */
 export type VNodeExtractable = HTMLElement | VNode | ProxyNode;
-
-export type VNodeAppendable = (
-	| VNodeExtractable
-	| false
+export type VNodeChild =
+	| Node
 	| string
-	| (VNodeExtractable | false | string)[]
-)[];
+	| number
+	| boolean
+	| null
+	| undefined
+	| VNodeExtractable;
+export type VNodeChildList = (VNodeChild | VNodeChild[])[];
 
 export type VNodeElementName = keyof HTMLElementTagNameMap | (string & {});
+
+export type ResolveElement<Input extends VNodeElementName | VNodeExtractable> =
+	Input extends keyof HTMLElementTagNameMap
+		? HTMLElementTagNameMap[Input]
+		: Input extends HTMLElement
+		? Input
+		: Input extends VNode
+		? Input["element"]
+		: HTMLElement;

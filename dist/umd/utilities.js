@@ -9,7 +9,18 @@
 })(function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.P_VNodeUtil = exports.PNodeUtil = exports.VNodeExtractEl = void 0;
+    exports.P_VNodeUtil = exports.PNodeUtil = exports.VNodeExtractEl = exports.VNodeUtilityClass = void 0;
+    class VNodeUtilityClass {
+        constructor(node) {
+            this.node = node;
+            this.node = node;
+        }
+        nest(run) {
+            run(this);
+            return this.node;
+        }
+    }
+    exports.VNodeUtilityClass = VNodeUtilityClass;
     function VNodeExtractEl(node) {
         if ("element" in node) {
             return node.element;
@@ -21,10 +32,12 @@
         static resetStyles(vnode, to_reset) {
             const options = to_reset.length > 0 ? to_reset : ["content", "style", "class"];
             for (const option of options) {
+                /* Clear inner content */
                 if (option === "content") {
                     vnode.element.innerHTML = "";
                 }
                 else if (option === "style") {
+                    /* Clear styles */
                     if (vnode.element instanceof HTMLElement) {
                         const style_ref = vnode.element.style;
                         for (let i = style_ref.length; i--;) {
@@ -34,6 +47,7 @@
                     }
                 }
                 else if (option === "class") {
+                    /* Clear classes */
                     vnode.element.className = "";
                 }
             }

@@ -31,7 +31,9 @@ type ReservedEvents = "append" | "remove";
 type NewNode = Record<string, ProxyNode>;
 
 let reserved_events: (ReservedEvents | (string & {}))[] = ["append", "remove"];
-
+/**
+ * @deprecated
+ */
 export class ProxynodeTracking {
 	static inDom(element: HTMLElement) {
 		return this.tracked_in_dom.get(element) == true;
@@ -72,6 +74,9 @@ export class ProxynodeTracking {
 	}
 }
 
+/**
+ * @deprecated
+ */
 export class ProxyNode {
 	private static stored_listeners: WeakMap<HTMLElement, SubMap> =
 		new WeakMap();

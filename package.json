@@ -1,11 +1,10 @@
 {
 	"name": "@orago/dom",
-	"version": "0.0.41",
+	"version": "0.0.49",
 	"description": "Orago's Game library",
 	"type": "module",
 	"main": "dist/esm/index.js",
 	"scripts": {
-		"pre-publish": "npm run build",
 		"build": "npm run build:clean && npm run build-cjs & npm run build-esm & npm run build-umd & npm run build-browser-esm & npm run build-browser-umd",
 		"build:clean": "rimraf dist/",
 		"build-cjs": "npx tsc --module commonjs --outDir dist/cjs/ --declarationDir dist/cjs",
@@ -19,23 +18,23 @@
 	"exports": {
 		".": {
 			"default": {
+				"types": "./dist/types/index.d.ts",
 				"import": "./dist/esm/index.js",
-				"require": "./dist/cjs/index.js",
-				"types": "./dist/types/index.d.ts"
+				"require": "./dist/cjs/index.js"
 			}
 		},
 		"./*": {
 			"default": {
+				"types": "./dist/types/*.d.ts",
 				"import": "./dist/esm/*.js",
-				"require": "./dist/cjs/*.js",
-				"types": "./dist/types/*.d.ts"
+				"require": "./dist/cjs/*.js"
 			}
 		}
 	},
 	"author": "Orago",
 	"license": "ISC",
 	"dependencies": {
-		"@orago/lib": "0.0.31",
+		"@orago/lib": "^0.0.41",
 		"uuid": "^9.0.1"
 	},
 	"devDependencies": {
@@ -44,7 +43,7 @@
 		"@types/uuid": "^9.0.8",
 		"rollup": "^4.18.1",
 		"rollup-plugin-dts": "^6.2.1",
-		"tslib": "^2.6.3",
-		"typescript": "^5.3.3"
+		"typescript": "^5.3.3",
+		"vite": "^7.1.7"
 	}
 }
