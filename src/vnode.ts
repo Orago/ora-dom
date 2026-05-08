@@ -6,7 +6,7 @@ import type {
 	ResolveElement,
 } from "./interfaces.js";
 import { ProxyNode } from "./proxynode.js";
-import { P_VNodeUtil, VNodeUtilities, VNodeExtractEl } from "./utilities.js";
+import { VNodeUtilities, VNodeExtractEl } from "./vnode_utilities.js";
 import {
 	VNodeClasses,
 	VNodeEvents,
@@ -127,9 +127,6 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 	/**
 	 * Styling manager
 	 */
-	// public style = new VNodeStyle(this);
-	// public temp_style: VNodeStyle | undefined;
-	// public style!: ReturnType<typeof makeCallableInstance<typeof VNodeStyle<this>>>; //= VNodeUtilTrap("style", this, () => new VNodeStyle(this));
 	public style!: ReturnType<
 		typeof makeCallableClass<typeof VNodeStyle<this>>
 	>; //= VNodeUtilTrap("style", this, () => new VNodeStyle(this));
@@ -138,9 +135,6 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 	/**
 	 * Class manager
 	 */
-	// public class = new VNodeClasses(this);
-	// public temp_class: VNodeClasses | undefined;
-	// public class!: CallableUtilUnion<typeof VNodeClasses<this>>;
 	public class!: ReturnType<
 		typeof makeCallableClass<typeof VNodeClasses<this>>
 	>;
@@ -148,8 +142,6 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 	/**
 	 * Event manager
 	 */
-	// public events = new VNodeEvents(this);
-	// public temp_events: VNodeEvents | undefined;
 	public events!: ReturnType<
 		typeof makeCallableClass<typeof VNodeEvents<this>>
 	>;
@@ -158,12 +150,12 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 		trapValue(
 			this,
 			"style",
-			() => makeCallableClass(VNodeStyle, this as any) as any
+			() => makeCallableClass(VNodeStyle, this) as any
 		);
 		trapValue(
 			this,
 			"class",
-			() => makeCallableClass(VNodeClasses, this as any) as any
+			() => makeCallableClass(VNodeClasses, this) as any
 		);
 		trapValue(
 			this,
@@ -187,16 +179,14 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 	public attr(
 		attributes: Partial<Record<string, string | number> & E> = {}
 	): this {
-		P_VNodeUtil.attr(this.element, attributes);
+		VNodeUtilities.setAttributes(this.element, attributes);
 		return this;
 	}
 
 	public swap(node: VNodeExtractable): this {
 		const new_node = VNode.Util.extractEl(node);
-
 		this.element.replaceWith(new_node);
 		this.element = new_node as any;
-
 		return this;
 	}
 
@@ -207,7 +197,6 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 			return this.element.id;
 		} else {
 			this.element.id = value;
-
 			return this;
 		}
 	}
@@ -276,6 +265,34 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 		}
 	}
 
+	public dataset(): Partial<Record<string, string>>;
+	public dataset(record: "clear" | Partial<Record<string, string>>): this;
+	public dataset(record?: "clear" | Partial<Record<string, string>>): any {
+		if (record == undefined) {
+			return this.element.dataset;
+		}
+
+		if (record == "clear") {
+			return this.dataset(
+				Object.fromEntries(
+					Object.keys(this.element.dataset).map((key) => [
+						key,
+						undefined,
+					])
+				)
+			);
+		}
+
+		for (const [key, value] of Object.entries(record)) {
+			if (value == undefined) {
+				delete this.element.dataset[key];
+			} else {
+				this.element.dataset[key] = value;
+			}
+		}
+		return this;
+	}
+
 	public focus() {
 		if (this.inDom()) {
 			if (this.element instanceof HTMLElement) {
@@ -294,7 +311,6 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 
 	public ref(run: (arg0: this) => void): this {
 		run(this);
-
 		return this;
 	}
 

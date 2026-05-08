@@ -31,17 +31,17 @@ export class OraCssStyle {
 
 	static toString(name: string, data: OraCssStyleOptions) {
 		const { extend, ...other_data } = data;
-		let style: string = "";
+		let styles: string[] = [];
 
-		style += OraCssStyle.resolve(name, other_data);
+		styles.push(OraCssStyle.resolve(name, other_data));
 
 		if (extend != undefined) {
 			for (const [key, value] of Object.entries(extend)) {
-				style += OraCssStyle.resolve(name + key, value);
+				styles.push(OraCssStyle.resolve(name + key, value));
 			}
 		}
 
-		return style;
+		return styles.join(" \n");
 	}
 
 	constructor(public name: string, public data: OraCssStyleOptions) {}
@@ -164,6 +164,11 @@ class AnimationManager extends OraCssDepot<
 }
 
 export class OraCss {
+	public static readonly ExtendStyle = class ExtendStyle {
+		public static classname(name: string) {
+			return ` .${name}`;
+		}
+	};
 	public static createPluginStyle(callback: (manager: StyleManager) => void) {
 		return callback;
 	}
@@ -197,18 +202,18 @@ export class OraCss {
 	public readonly styles = makeCallableClass(StyleManager, this);
 	public readonly animations = makeCallableClass(AnimationManager, this);
 
-	public inserted_into?: HTMLElement;
+	public attatched?: HTMLElement;
 
 	/**
 	 * inserts stylesheet into the dom onto element then stores reference
 	 */
 	public attach(element: HTMLElement = document.head) {
-		if (element !== this.inserted_into) {
-			if (this.inserted_into != undefined) {
+		if (element !== this.attatched) {
+			if (this.attatched != undefined) {
 				this.detach();
 			}
-			this.inserted_into = element;
-			this.inserted_into.appendChild(this.element);
+			this.attatched = element;
+			this.attatched.appendChild(this.element);
 			this.build();
 		}
 		return this;
@@ -219,7 +224,7 @@ export class OraCss {
 	 */
 	public detach() {
 		this.element.remove();
-		this.inserted_into = undefined;
+		this.attatched = undefined;
 		return this;
 	}
 

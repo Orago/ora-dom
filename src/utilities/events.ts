@@ -1,6 +1,6 @@
 import { Emitter, Signal, State } from "@orago/lib";
 import { SubMap } from "../submap.js";
-import { P_VNodeUtil, VNodeUtilityClass } from "../utilities.js";
+import { VNodeUtilities, VNodeUtilityClass } from "../vnode_utilities.js";
 import type { VNode } from "../vnode.js";
 import { StateTracking } from "./vnode_tracking.js";
 
@@ -70,7 +70,9 @@ class VNodeEventCollection {
 			COLLECTION.events.on(event, callback);
 		} else {
 			if (event == "keypress" || event == "keydown" || event == "keyup") {
-				P_VNodeUtil.attr(COLLECTION.element, { tabIndex: 0 });
+				VNodeUtilities.setAttributes(COLLECTION.element, {
+					tabIndex: 0,
+				});
 			}
 			COLLECTION.listeners.add(event, callback);
 			COLLECTION.element.addEventListener(event, callback as any);
@@ -248,7 +250,8 @@ export class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
 			for (const e of normalized) {
 				e.on(handler);
 			}
-		}).on("disconnected", () => {
+		});
+		this.on("disconnected", () => {
 			for (const e of normalized) {
 				e.off(handler);
 			}
@@ -273,7 +276,8 @@ export class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
 			for (const state of states) {
 				state.change.on(handler);
 			}
-		}).on("disconnected", () => {
+		});
+		this.on("disconnected", () => {
 			for (const state of states) {
 				state.change.off(handler);
 			}
@@ -305,7 +309,6 @@ export function normalizeEvent(
 		];
 	} else {
 		const [emitter, names]: [Emitter, string[]] = e;
-
 		return names.map((name) => ({
 			on: (h) => emitter.on(name, h),
 			off: (h) => emitter.off(name, h),

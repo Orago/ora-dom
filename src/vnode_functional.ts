@@ -1,5 +1,5 @@
 import { VNodeChildList } from "./interfaces.js";
-import { VNodeUtilities } from "./utilities.js";
+import { VNodeUtilities } from "./vnode_utilities.js";
 import { VNode } from "./vnode.js";
 
 type VNodeTagged<T extends keyof HTMLElementTagNameMap> = VNode<

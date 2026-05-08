@@ -5,7 +5,10 @@ import type {
 	VNodeStyleDeclarationWithProps,
 } from "../interfaces.js";
 import { SubMap } from "../submap.js";
-import { P_VNodeUtil, VNodeUtilityClass } from "../utilities.js";
+import {
+	VNodeUtilities,
+	VNodeUtilityClass,
+} from "../vnode_utilities.js";
 import type { VNode } from "../vnode.js";
 import { SizeTracking, StateTracking } from "./vnode_tracking.js";
 import { ReservedEvents, VNodeEventKeys, VNodeEventsT } from "./events.js";
@@ -34,7 +37,7 @@ class VNodeAnimation<T extends VNode> {
 		if (typeof options === "object") {
 			this.animation.addEventListener("finish", () => {
 				if (options.save === true) {
-					P_VNodeUtil.setStyles(this.node.element, styles[end_index]);
+					VNodeUtilities.setStyles(this.node.element, styles[end_index]);
 				}
 			});
 		}
@@ -61,12 +64,13 @@ export class VNodeStyle<T extends VNode> extends VNodeUtilityClass<T> {
 	// }
 
 	public update(styles: VNodeStyleDeclarationWithProps = {}) {
-		P_VNodeUtil.setStyles(this.node.element, styles);
+		VNodeUtilities.setStyles(this.node.element, styles);
+		
 		return this;
 	}
 
 	public remove(...styles: string[]) {
-		P_VNodeUtil.removeStyles(this.node.element, styles);
+		VNodeUtilities.removeStyles(this.node.element, styles);
 		return this;
 	}
 
@@ -192,7 +196,9 @@ class VNodeEventCollection {
 			COLLECTION.events.on(event, callback);
 		} else {
 			if (event == "keypress" || event == "keydown" || event == "keyup") {
-				P_VNodeUtil.attr(COLLECTION.element, { tabIndex: 0 });
+				VNodeUtilities.setAttributes(COLLECTION.element, {
+					tabIndex: 0,
+				});
 			}
 			COLLECTION.listeners.add(event, callback);
 			COLLECTION.element.addEventListener(event, callback as any);
@@ -337,7 +343,7 @@ export class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
 		return this.nest(...args);
 	}
 
-	public on(event: VNodeEventKeys , callback: Function) {
+	public on(event: VNodeEventKeys, callback: Function) {
 		if (event == "connected" || event == "disconnected") {
 			StateTracking.initNodeTracking(this.node);
 		}

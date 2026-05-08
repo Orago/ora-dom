@@ -7,7 +7,7 @@ import type {
 } from "./interfaces.js";
 
 import { SubMap } from "./submap.js";
-import { PNodeUtil, VNodeExtractEl } from "./utilities.js";
+import { PNodeUtil, VNodeExtractEl } from "./vnode_utilities.js";
 import { VNode } from "./vnode.js";
 
 // export type {
