@@ -202,10 +202,12 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 		return this;
 	}
 
-	public use(plugins: ((node: VNode) => void)[]) {
+	public use(plugins: ((node: VNode) => void)[]): this {
 		for (const plugin of plugins) {
 			plugin(this);
 		}
+
+		return this;
 	}
 
 	public attr(

@@ -49,6 +49,7 @@ export class VNode {
         for (const plugin of plugins) {
             plugin(this);
         }
+        return this;
     }
     attr(attributes = {}) {
         VNodeUtilities.setAttributes(this.element, attributes);

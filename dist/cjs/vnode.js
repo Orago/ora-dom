@@ -52,6 +52,7 @@ class VNode {
         for (const plugin of plugins) {
             plugin(this);
         }
+        return this;
     }
     attr(attributes = {}) {
         vnode_utilities_js_1.VNodeUtilities.setAttributes(this.element, attributes);
