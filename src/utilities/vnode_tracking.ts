@@ -1,5 +1,5 @@
 import { VNode } from "../vnode.js";
-import { VNODE_FLAG } from "./events.js";
+import { VNODE_FLAG } from "./base_components.js";
 import { VNodeEvents } from "./vnode_extras.js";
 
 function getAllRemovedNodes(node: Node): Node[] {

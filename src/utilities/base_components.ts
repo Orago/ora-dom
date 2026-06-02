@@ -5,3 +5,4 @@ export const ReservedEvents = {
 	connected: VOID_EVENT,
 	disconnected: VOID_EVENT,
 } satisfies Record<string, () => void>;
+export const VNODE_FLAG = (name: string) => `__vnode_${name}`;

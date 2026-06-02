@@ -16,7 +16,6 @@ type StateValues<T extends readonly State<any>[]> = {
 
 
 
-export const VNODE_FLAG = (name: string) => `__vnode_${name}`;
 
 export class VNodeEventGroup {
 	map: Map<keyof HTMLElementEventMap, Function> = new Map();
