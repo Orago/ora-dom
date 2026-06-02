@@ -244,7 +244,7 @@ declare class VNode<E extends HTMLElement = HTMLElement> {
     events: ReturnType<typeof makeCallableClass<typeof VNodeEvents<this>>>;
     constructor(element: VNodeElementName | VNodeExtractable);
     ref(run: (arg0: this) => void): this;
-    use(plugins: ((node: VNode) => void)[]): this;
+    use(plugins: ((node: this) => void)[]): this;
     attr(attributes?: Partial<Record<string, string | number> & E>): this;
     swap(node: VNodeExtractable): this;
     id(value: string): this;
