@@ -1,4 +1,7 @@
-import { VNodeChildList } from "./interfaces.js";
+import {
+	VNodeChildList,
+	VNodeStyleDeclarationWithProps,
+} from "./interfaces.js";
 import { VNodeUtilities } from "./vnode_utilities.js";
 import { VNode } from "./vnode.js";
 
@@ -11,7 +14,7 @@ export type VNProperties<T extends keyof HTMLElementTagNameMap> = {
 		Record<string, string | number> & HTMLElementTagNameMap[T]
 	>;
 	properties?: Partial<HTMLElementTagNameMap[T]>;
-	style?: Partial<CSSStyleDeclaration>;
+	style?: VNodeStyleDeclarationWithProps;
 	dataset?: Record<string, string>;
 	class?: string[] | string;
 	on?: {
@@ -51,7 +54,7 @@ export function vn<T extends keyof HTMLElementTagNameMap>(
 		}
 
 		if (props.style) {
-			Object.assign(node.style, props.style);
+			node.style(props.style);
 		}
 
 		if (props.dataset) {

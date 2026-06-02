@@ -13,7 +13,7 @@ export function vn(tag, props, ...children) {
             Object.assign(node.element, props.properties);
         }
         if (props.style) {
-            Object.assign(node.style, props.style);
+            node.style(props.style);
         }
         if (props.dataset) {
             for (const [key, value] of Object.entries(props.dataset)) {
