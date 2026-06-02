@@ -8,6 +8,7 @@ import {
 } from "./ora_css.js";
 import { VNode } from "./vnode.js";
 
+
 type StyleOptions = Partial<Record<OraCssStyleNames, string>>;
 
 class StyledNodeManager {

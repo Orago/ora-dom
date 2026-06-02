@@ -1295,7 +1295,6 @@ SizeTracking.sizes = new WeakMap();
 class VNodeAnimation {
     constructor(node, styles, options) {
         this.node = node;
-        this.node = node;
         this.animation = this.node.element.animate(styles, options.animation);
         const use_reverse = options.animation.direction == "reverse" ||
             options.animation.direction == "alternate-reverse";
@@ -1464,10 +1463,10 @@ class VNodeEventCollection {
         }
         COLLECTION.events.all.clear();
     }
-    constructor(ref) {
+    constructor(element) {
+        this.element = element;
         this.listeners = new SubMap();
         this.events = new Emitter();
-        this.element = ref;
     }
 }
 VNodeEventCollection.reserved_events = [
@@ -1510,6 +1509,16 @@ class VNodeEvents extends VNodeUtilityClass {
     constructor(node) {
         super(node);
         this.element = this.node.element;
+    }
+    nest(run) {
+        if (typeof run == "function") {
+            run(this);
+        }
+        else
+            for (const [event, callback] of run) {
+                this.on(event, callback);
+            }
+        return this.node;
     }
     call(...args) {
         return this.nest(...args);
@@ -1761,6 +1770,7 @@ VNode.of = new Proxy({}, {
 VNode.extractEl = VNodeExtractEl;
 VNode.send_events = false;
 VNode.events = new Emitter();
+new VNode("div").events([["meow", () => { }]]);
 
 /**
  * Virtual Node (Functional implementation)

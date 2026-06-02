@@ -1,11 +1,10 @@
 import { Emitter } from "@orago/lib";
 import { SubMap } from "../submap.js";
-import { VNodeUtilities, VNodeUtilityClass, } from "../vnode_utilities.js";
+import { VNodeUtilities, VNodeUtilityClass } from "../vnode_utilities.js";
 import { SizeTracking, StateTracking } from "./vnode_tracking.js";
 import { ReservedEvents } from "./events.js";
 class VNodeAnimation {
     constructor(node, styles, options) {
-        this.node = node;
         this.node = node;
         this.animation = this.node.element.animate(styles, options.animation);
         const use_reverse = options.animation.direction == "reverse" ||
@@ -181,10 +180,10 @@ class VNodeEventCollection {
         }
         COLLECTION.events.all.clear();
     }
-    constructor(ref) {
+    constructor(element) {
+        this.element = element;
         this.listeners = new SubMap();
         this.events = new Emitter();
-        this.element = ref;
     }
 }
 VNodeEventCollection.reserved_events = [
@@ -227,6 +226,16 @@ export class VNodeEvents extends VNodeUtilityClass {
     constructor(node) {
         super(node);
         this.element = this.node.element;
+    }
+    nest(run) {
+        if (typeof run == "function") {
+            run(this);
+        }
+        else
+            for (const [event, callback] of run) {
+                this.on(event, callback);
+            }
+        return this.node;
     }
     call(...args) {
         return this.nest(...args);

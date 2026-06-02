@@ -5,10 +5,7 @@ import type {
 	VNodeStyleDeclarationWithProps,
 } from "../interfaces.js";
 import { SubMap } from "../submap.js";
-import {
-	VNodeUtilities,
-	VNodeUtilityClass,
-} from "../vnode_utilities.js";
+import { VNodeUtilities, VNodeUtilityClass } from "../vnode_utilities.js";
 import type { VNode } from "../vnode.js";
 import { SizeTracking, StateTracking } from "./vnode_tracking.js";
 import { ReservedEvents, VNodeEventKeys, VNodeEventsT } from "./events.js";
@@ -21,7 +18,6 @@ class VNodeAnimation<T extends VNode> {
 		styles: StyleDeclaration[],
 		options: VNodeAnimationOptions
 	) {
-		this.node = node;
 
 		this.animation = this.node.element.animate(
 			styles as Keyframe[],
@@ -37,7 +33,10 @@ class VNodeAnimation<T extends VNode> {
 		if (typeof options === "object") {
 			this.animation.addEventListener("finish", () => {
 				if (options.save === true) {
-					VNodeUtilities.setStyles(this.node.element, styles[end_index]);
+					VNodeUtilities.setStyles(
+						this.node.element,
+						styles[end_index]
+					);
 				}
 			});
 		}
@@ -65,7 +64,7 @@ export class VNodeStyle<T extends VNode> extends VNodeUtilityClass<T> {
 
 	public update(styles: VNodeStyleDeclarationWithProps = {}) {
 		VNodeUtilities.setStyles(this.node.element, styles);
-		
+
 		return this;
 	}
 
@@ -108,6 +107,8 @@ export class VNodeClasses<T extends VNode> extends VNodeUtilityClass<T> {
 			element.classList.remove(...args);
 		}
 	}
+
+
 
 	public call(...classes: string[]): T;
 	public call(nest: (arg0: this) => void): T;
@@ -264,14 +265,10 @@ class VNodeEventCollection {
 
 		COLLECTION.events.all.clear();
 	}
-	listeners: SubMap<Record<string, any>, true> = new SubMap();
+	readonly listeners: SubMap<Record<string, any>, true> = new SubMap();
 	events: Emitter<VNodeEventsT> = new Emitter();
 
-	readonly element: HTMLElement;
-
-	constructor(ref: HTMLElement) {
-		this.element = ref;
-	}
+	constructor(public readonly element: HTMLElement) {}
 }
 
 export class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
@@ -337,6 +334,21 @@ export class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
 	constructor(node: T) {
 		super(node);
 		this.element = this.node.element;
+	}
+
+	public nest(
+		run:
+			| ((arg0: this) => void)
+			| [event: VNodeEventKeys, callback: Function][]
+	): this["node"] {
+		if (typeof run == "function") {
+			run(this);
+		} else
+			for (const [event, callback] of run) {
+				this.on(event, callback);
+			}
+
+		return this.node;
 	}
 
 	public call(...args: Parameters<VNodeEvents<this["node"]>["nest"]>) {

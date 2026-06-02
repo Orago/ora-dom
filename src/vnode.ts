@@ -55,7 +55,9 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 			if (options.text != undefined) {
 				return VNodeUtilities.elementTextFind(
 					options.text,
-					found.map((e) => [e.element.textContent, e])
+					found.map(
+						(e) => [e.element.textContent, e] as [string, VNode]
+					)
 				).map((vec) => vec[1]);
 			} else {
 				return found;
@@ -368,3 +370,5 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 		return this;
 	}
 }
+
+new VNode("div").events([["meow", () => {}]]);

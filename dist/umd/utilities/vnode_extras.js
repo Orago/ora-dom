@@ -18,7 +18,6 @@
     class VNodeAnimation {
         constructor(node, styles, options) {
             this.node = node;
-            this.node = node;
             this.animation = this.node.element.animate(styles, options.animation);
             const use_reverse = options.animation.direction == "reverse" ||
                 options.animation.direction == "alternate-reverse";
@@ -195,10 +194,10 @@
             }
             COLLECTION.events.all.clear();
         }
-        constructor(ref) {
+        constructor(element) {
+            this.element = element;
             this.listeners = new submap_js_1.SubMap();
             this.events = new lib_1.Emitter();
-            this.element = ref;
         }
     }
     VNodeEventCollection.reserved_events = [
@@ -241,6 +240,16 @@
         constructor(node) {
             super(node);
             this.element = this.node.element;
+        }
+        nest(run) {
+            if (typeof run == "function") {
+                run(this);
+            }
+            else
+                for (const [event, callback] of run) {
+                    this.on(event, callback);
+                }
+            return this.node;
         }
         call(...args) {
             return this.nest(...args);

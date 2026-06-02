@@ -32,6 +32,7 @@ export declare class VNodeClasses<T extends VNode> extends VNodeUtilityClass<T> 
     toggleClass(class_name: string, status?: boolean): this;
 }
 declare class VNodeEventCollection {
+    readonly element: HTMLElement;
     private static reserved_events;
     private static isReserved;
     static on(COLLECTION: VNodeEventCollection, event: VNodeEventKeys, callback: Function): void;
@@ -39,10 +40,9 @@ declare class VNodeEventCollection {
     static once(COLLECTION: VNodeEventCollection, event: VNodeEventKeys, callback: Function): void;
     static emit(COLLECTION: VNodeEventCollection, event: VNodeEventKeys, ...args: any[]): void;
     static clear(COLLECTION: VNodeEventCollection): void;
-    listeners: SubMap<Record<string, any>, true>;
+    readonly listeners: SubMap<Record<string, any>, true>;
     events: Emitter<VNodeEventsT>;
-    readonly element: HTMLElement;
-    constructor(ref: HTMLElement);
+    constructor(element: HTMLElement);
 }
 export declare class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
     private static c_events;
@@ -54,6 +54,7 @@ export declare class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
     static clear(element: HTMLElement): void;
     element: HTMLElement;
     constructor(node: T);
+    nest(run: ((arg0: this) => void) | [event: VNodeEventKeys, callback: Function][]): this["node"];
     call(...args: Parameters<VNodeEvents<this["node"]>["nest"]>): this["node"];
     on(event: VNodeEventKeys, callback: Function): this;
     off(event: VNodeEventKeys, callback?: Function): this;
