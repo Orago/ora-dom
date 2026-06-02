@@ -74,3 +74,17 @@ export type ResolveElement<Input extends VNodeElementName | VNodeExtractable> =
 		: Input extends VNode
 		? Input["element"]
 		: HTMLElement;
+
+
+export interface VNodeWhereOptions {
+	id?: string;
+	classes?: string[];
+	data?: Record<string, string>;
+	attributes?: Record<string, string>;
+
+	text?: {
+		lowercase?: boolean;
+		uppercase?: boolean;
+		find: string | ((text: string) => boolean);
+	};
+}

@@ -2,17 +2,18 @@ import { VNodeChildList } from "./interfaces.js";
 import { VNodeUtilities } from "./vnode_utilities.js";
 import { VNode } from "./vnode.js";
 
-type VNodeTagged<T extends keyof HTMLElementTagNameMap> = VNode<
+export type VNodeTagged<T extends keyof HTMLElementTagNameMap> = VNode<
 	HTMLElementTagNameMap[T]
 >;
 
-type VNProperties<T extends keyof HTMLElementTagNameMap> = {
+export type VNProperties<T extends keyof HTMLElementTagNameMap> = {
 	attributes?: Partial<
 		Record<string, string | number> & HTMLElementTagNameMap[T]
 	>;
 	properties?: Partial<HTMLElementTagNameMap[T]>;
 	style?: Partial<CSSStyleDeclaration>;
 	dataset?: Record<string, string>;
+	class?: string[];
 	on?: {
 		[K in keyof HTMLElementEventMap]?: (
 			this: VNodeTagged<T>,
@@ -49,6 +50,10 @@ export function vn<T extends keyof HTMLElementTagNameMap>(
 			for (const [key, value] of Object.entries(props.dataset)) {
 				node.element.dataset[key] = value;
 			}
+		}
+
+		if (props.class) {
+			node.class.add(...props.class);
 		}
 
 		if (props.on) {

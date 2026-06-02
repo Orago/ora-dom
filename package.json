@@ -1,6 +1,6 @@
 {
 	"name": "@orago/dom",
-	"version": "0.0.49",
+	"version": "0.0.50",
 	"description": "Orago's Game library",
 	"type": "module",
 	"main": "dist/esm/index.js",

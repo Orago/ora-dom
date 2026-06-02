@@ -23,19 +23,9 @@ function trapValue(obj, property, callback) {
     });
 }
 
-(undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-
 class Emitter {
+    all = new Map();
     constructor(all) {
-        this.all = new Map();
         if (all instanceof Map) {
             this.all = all;
         }
@@ -43,7 +33,6 @@ class Emitter {
             this.all = new Map(all);
         }
     }
-    /** Adds a listener */
     on(event, callback) {
         const handlers = this.all.get(event);
         if (handlers) {
@@ -54,7 +43,6 @@ class Emitter {
         }
         return this;
     }
-    /** Disables a listener */
     off(event, callback) {
         const handlers = this.all.get(event);
         if (handlers) {
@@ -70,7 +58,6 @@ class Emitter {
         }
         return this;
     }
-    /** Notifies all active listeners */
     emit(event, ...args) {
         let handlers = this.all.get(event);
         if (handlers != undefined) {
@@ -100,10 +87,67 @@ class Emitter {
         }
     }
 }
+class Signal {
+    all = new Set();
+    constructor(all) {
+        if (all instanceof Set) {
+            this.all = all;
+        }
+        else if (Array.isArray(all)) {
+            this.all = new Set(all);
+        }
+    }
+    on(callback) {
+        this.all.add(callback);
+        return this;
+    }
+    off(callback) {
+        this.all.delete(callback);
+        return this;
+    }
+    emit(...args) {
+        let handlers = Array.from(this.all.values());
+        for (const handler of handlers.slice()) {
+            handler(...args);
+        }
+        return this;
+    }
+    once(callback) {
+        const once_callback = (...args) => {
+            this.off(once_callback);
+            callback(...args);
+            return void 0;
+        };
+        this.on(once_callback);
+        return this;
+    }
+}
+
+class Status {
+    status;
+    text;
+    static Success = class Success extends Status {
+        constructor(text = "Success!", data) {
+            super(true, text, data);
+        }
+    };
+    static Error = class Error extends Status {
+        constructor(text = "Error!", data) {
+            super(false, text, data);
+        }
+    };
+    data;
+    constructor(status, text = "Status Response", data) {
+        this.status = status;
+        this.text = text;
+        this.data = data;
+    }
+}
 
 var Helpers;
 (function (Helpers) {
     class VecLike {
+        static type;
         static toString(args) {
             return `(${this.clean(args).join(",")})`;
         }
@@ -115,17 +159,20 @@ var Helpers;
         }
     }
     class VectorNumber extends VecLike {
+        static type;
+        static size = 0;
         static clean(args) {
-            return new Array(this.size).fill(0).map((v, i) => { var _a; return (_a = args === null || args === void 0 ? void 0 : args[i]) !== null && _a !== void 0 ? _a : v; });
+            return new Array(this.size).fill(0).map((v, i) => args?.[i] ?? v);
         }
         static valid(args) {
             return (args.length == this.size &&
                 args.every((n) => typeof n === "number"));
         }
     }
-    VectorNumber.size = 0;
     Helpers.VectorNumber = VectorNumber;
     class VectorNumberInt extends VectorNumber {
+        static type;
+        static size = 0;
         static clean(args) {
             return super.clean(args).map((n) => n | 0);
         }
@@ -133,10 +180,11 @@ var Helpers;
             return super.valid(args) && args.every((n) => n == (n | 0));
         }
     }
-    VectorNumberInt.size = 0;
     Helpers.VectorNumberInt = VectorNumberInt;
 })(Helpers || (Helpers = {}));
 class Vector2 extends Helpers.VectorNumber {
+    static type;
+    static size = 2;
     static clean(args) {
         return super.clean(args);
     }
@@ -150,8 +198,9 @@ class Vector2 extends Helpers.VectorNumber {
         return { x: args[0], y: args[0] };
     }
 }
-Vector2.size = 2;
 class Vector2i extends Helpers.VectorNumberInt {
+    static type;
+    static size = 2;
     static clean(args) {
         return super.clean(args);
     }
@@ -166,8 +215,9 @@ class Vector2i extends Helpers.VectorNumberInt {
         return { x: args[0] | 0, y: args[1] | 0 };
     }
 }
-Vector2i.size = 2;
 class Vector3 extends Helpers.VectorNumber {
+    static type;
+    static size = 3;
     static clean(args) {
         return super.clean(args);
     }
@@ -181,8 +231,9 @@ class Vector3 extends Helpers.VectorNumber {
         return { x: args[0], y: args[1], z: args[2] };
     }
 }
-Vector3.size = 3;
 class Vector3i extends Helpers.VectorNumberInt {
+    static type;
+    static size = 3;
     static clean(args) {
         return super.clean(args);
     }
@@ -191,326 +242,6 @@ class Vector3i extends Helpers.VectorNumberInt {
     }
     static toObject(args) {
         return { x: args[0] | 0, y: args[1] | 0, z: args[2] | 0 };
-    }
-}
-Vector3i.size = 3;
-
-class ObserverTracking {
-    static inDom(element) {
-        return this.tracked_in_dom.get(element) == true;
-    }
-    static handle(element) {
-        var _a, _b;
-        // If it's in dom now but wasn't before
-        if (document.body.contains(element)) {
-            if (this.inDom(element) != true) {
-                (_a = this.getEvents(element)) === null || _a === void 0 ? void 0 : _a.emit("append");
-            }
-            this.tracked_in_dom.set(element, true);
-        }
-        else if (this.inDom(element)) {
-            /* Was in dom but removed */
-            this.tracked_in_dom.set(element, false);
-            (_b = this.getEvents(element)) === null || _b === void 0 ? void 0 : _b.emit("remove");
-        }
-    }
-    static getEvents(element) {
-        const existing = this.weak_events.get(element);
-        if (existing) {
-            return existing;
-        }
-        else {
-            const emitter = new Emitter();
-            this.weak_events.set(element, emitter);
-            return emitter;
-        }
-    }
-    constructor() {
-        // private wrap_map: Map<ObservedCallback, ObservedCallback> = new Map();
-        this.list = new Set();
-        this.events = new Emitter();
-        this.observer = new MutationObserver(() => {
-            for (const element of this.list) {
-                ObserverTracking.handle(element);
-            }
-            this.events.emit("any");
-        });
-        this.observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-        });
-    }
-    cleanupElement(element) {
-        // Do cleanup
-        if (ObserverTracking.getEvents(element).all.size == 0) {
-            this.list.delete(element);
-        }
-    }
-    on(element, event, callback) {
-        this.list.add(element);
-        ObserverTracking.getEvents(element).on(event, callback);
-        return this;
-    }
-    off(element, event, callback) {
-        ObserverTracking.getEvents(element).off(event, callback);
-        this.cleanupElement(element);
-        return this;
-    }
-    once(element, event, callback) {
-        this.list.add(element);
-        ObserverTracking.getEvents(element)
-            .once(event, callback)
-            .once(event, () => this.cleanupElement(element));
-        return this;
-    }
-}
-ObserverTracking.weak_events = new WeakMap();
-ObserverTracking.tracked_in_dom = new WeakMap();
-
-/******************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */
-/* global Reflect, Promise, SuppressedError, Symbol */
-
-
-function __rest(s, e) {
-    var t = {};
-    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-        t[p] = s[p];
-    if (s != null && typeof Object.getOwnPropertySymbols === "function")
-        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                t[p[i]] = s[p[i]];
-        }
-    return t;
-}
-
-function __awaiter(thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-}
-
-typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
-    var e = new Error(message);
-    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-};
-
-function camelToKebab(str) {
-    return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
-}
-class JssStyle {
-    static parseContents(data) {
-        return Object.entries(data).map(([name, value]) => `${camelToKebab(name)}: ${value}`);
-    }
-    constructor(data) {
-        this.data = data;
-    }
-    resolve(name, data) {
-        const formatted_styles = JssClass.parseContents(data).join("; ");
-        return `${name} { ${formatted_styles} }`;
-    }
-    toString(name) {
-        const _a = this.data, { extend } = _a, data = __rest(_a, ["extend"]);
-        let style = "";
-        style += this.resolve(name, data);
-        if (extend != undefined) {
-            for (const [key, value] of Object.entries(extend)) {
-                style += this.resolve(name + key, value);
-            }
-        }
-        return style;
-    }
-}
-class JssClass extends JssStyle {
-    static parseContents(data) {
-        return Object.entries(data).map(([name, value]) => `${camelToKebab(name)}: ${value}`);
-    }
-    constructor(name, data) {
-        super(data);
-        this.name = name;
-    }
-    resolve(name, data) {
-        const formatted_styles = JssClass.parseContents(data).join("; ");
-        return `${name} { ${formatted_styles} }`;
-    }
-    toString() {
-        return super.toString(this.name);
-    }
-}
-class JssAnimation {
-    constructor(name, data) {
-        this.name = name;
-        this.data = data;
-    }
-    toString() {
-        const formatted_styles = this.data.map(([position, data]) => {
-            const dat = JssClass.parseContents(data);
-            let range = Array.isArray(position)
-                ? position.map(camelToKebab).join("; ")
-                : camelToKebab(position);
-            return `${range} { ${dat} }`;
-        });
-        return `@keyframes ${this.name} { ${formatted_styles.join(" ")} }`;
-    }
-}
-class JCSSStyleManager {
-    constructor(manager) {
-        this.manager = manager;
-        this.counter = 0;
-        this.indexes = new Map();
-        this.list = new Map();
-        this.manager = manager;
-    }
-    call(run) {
-        run(this);
-        return this.manager;
-    }
-    has(name) {
-        return this.list.has(name);
-    }
-    inject(instance) {
-        const index = this.counter++;
-        this.list.set(instance.name, instance);
-        this.indexes.set(instance, index);
-    }
-    add(name, style) {
-        this.inject(new JssClass(name, style));
-        // this.element.sheet?.insertRule(cssClass.toString(), index);
-        return this;
-    }
-    remove(instance) {
-        const index = this.indexes.get(instance);
-        if (index == null) {
-            return false;
-        }
-        else {
-            this.list.delete(instance.name);
-            this.indexes.delete(instance);
-            return true;
-        }
-    }
-    removeByName(name) {
-        const found = this.list.get(name);
-        if (found == null) {
-            return false;
-        }
-        else {
-            return this.remove(found);
-        }
-    }
-}
-class JCSSAnimationManager {
-    constructor(manager) {
-        this.manager = manager;
-        this.counter = 0;
-        this.indexes = new Map();
-        this.list = new Map();
-        this.manager = manager;
-    }
-    call(run) {
-        run(this);
-        return this.manager;
-    }
-    has(name) {
-        return this.list.has(name);
-    }
-    inject(instance) {
-        const index = this.counter++;
-        this.list.set(instance.name, instance);
-        this.indexes.set(instance, index);
-    }
-    add(name, style) {
-        this.inject(new JssAnimation(name, style));
-        // this.element.sheet?.insertRule(cssClass.toString(), index);
-        return this;
-    }
-    remove(instance) {
-        const index = this.indexes.get(instance);
-        if (index == null) {
-            return false;
-        }
-        else {
-            this.list.delete(instance.name);
-            this.indexes.delete(instance);
-            return true;
-        }
-    }
-    removeByName(name) {
-        const found = this.list.get(name);
-        if (found == null) {
-            return false;
-        }
-        else {
-            return this.remove(found);
-        }
-    }
-}
-class JCSS {
-    constructor() {
-        this.element = document.createElement("style");
-        this.style = makeCallableClass(JCSSStyleManager, this);
-        // new JCSSClassManager(this);
-        // animations = new JCSSAnimationManager(this);
-        this.animation = makeCallableClass(JCSSAnimationManager, this);
-        this.inserted_state = false;
-    }
-    insert() {
-        if (this.inserted_state == false) {
-            document.head.appendChild(this.element);
-            this.inserted_state = document.head.contains(this.element);
-            this.build();
-        }
-        return this;
-    }
-    remove() {
-        this.element.remove();
-        this.inserted_state = document.head.contains(this.element);
-        return this;
-    }
-    /**
-     * @deprecated
-     */
-    rebuild() {
-        return this.build();
-    }
-    build() {
-        const classes_string = Array.from(this.style.list.values())
-            .map((instance) => instance.toString())
-            .join("\n");
-        const animations_string = Array.from(this.animation.list.values())
-            .map((instance) => instance.toString())
-            .join("\n");
-        const result = [classes_string, animations_string].join(" ");
-        this.element.innerHTML = result;
-        return this;
-    }
-    getUsageCount() {
-        function selectAndCount(e) {
-            return document.querySelectorAll(e.name).length;
-        }
-        return Array.from(this.style.list.values())
-            .map(selectAndCount)
-            .reduce((accumulator, current) => accumulator + current, 0);
-    }
-    ref(run) {
-        run(this);
-        return this;
     }
 }
 
@@ -550,9 +281,127 @@ class SubMap {
     }
 }
 
+class VNodeUtilities {
+    static flattenContents(contents) {
+        return contents
+            .flat()
+            .filter((content) => content != undefined && content != false)
+            .map((a) => {
+            let t = typeof a;
+            // convert number or bool types to string
+            a = "number" == t || "boolean" == t ? String(a) : a;
+            // // convert strings to text nodes
+            // a = typeof a == "string" ? document.createTextNode(a) : a;
+            return a;
+        });
+    }
+    static flattenElements(contents) {
+        return contents.map((a) => {
+            let t = typeof a;
+            // convert number or bool types to string
+            a = "number" == t || "boolean" == t ? String(a) : a;
+            a = "string" == typeof a ? document.createTextNode(a) : a;
+            return a;
+        });
+    }
+    static injectItems(node, direction = "append", objs) {
+        if (objs.length < 1) {
+            return;
+        }
+        const items = this.flattenContents(objs);
+        for (const item of items) {
+            const extracted = typeof item === "string" ? item : VNodeExtractEl(item);
+            if (direction === "append") {
+                node.append(extracted);
+            }
+            else {
+                node.prepend(extracted);
+            }
+        }
+    }
+    static setAttributes(element, attributes = {}) {
+        if (typeof attributes == "object" && attributes !== null) {
+            for (let [key, value] of Object.entries(attributes)) {
+                if (value == null)
+                    continue;
+                key = VNodeUtilities.formatAttributeName("kebab", key);
+                element.setAttribute(key, String(value));
+            }
+        }
+    }
+    static setStyles(element, styles = {}) {
+        if (typeof styles != "object" ||
+            element instanceof HTMLElement != true) {
+            return;
+        }
+        for (const [key, value] of Object.entries(styles)) {
+            if (key === "variables") {
+                for (const [prop_key, prop_value] of Object.entries(value)) {
+                    element.style.setProperty(`--${prop_key}`, prop_value);
+                }
+            }
+            if (value == undefined) {
+                continue;
+            }
+            element.style[key] = `${value}`;
+        }
+    }
+    static removeStyles(element, styles) {
+        if (element instanceof HTMLElement) {
+            for (const style of styles) {
+                element.style.removeProperty(style);
+            }
+        }
+    }
+    static formatAttributeName(as, text) {
+        switch (as) {
+            case "camel":
+                return text
+                    .split("-")
+                    .map((e, i) => (i > 0
+                    ? e.slice(0, 1).toUpperCase()
+                    : e.slice(0, 1).toLowerCase()) +
+                    e.slice(1).toLowerCase())
+                    .join("");
+            case "kebab":
+                return text
+                    .replace(/([A-Z]{2,})/g, (match) => match.split("").join("-"))
+                    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+                    .toLowerCase();
+        }
+    }
+    static elementTextFind(options, dict) {
+        return dict.filter(([text]) => {
+            if (options.lowercase == true) {
+                text = String(text).toLowerCase();
+            }
+            if (options.uppercase == true) {
+                text = String(text).toUpperCase();
+            }
+            if (typeof options.find == "function") {
+                return options.find(text) == true;
+            }
+            else {
+                return text === options.find;
+            }
+        });
+    }
+    static whereString(options) {
+        var _a, _b, _c, _d, _e;
+        const class_str = (_b = (_a = options.classes) === null || _a === void 0 ? void 0 : _a.map((e) => "." + e)) === null || _b === void 0 ? void 0 : _b.join("");
+        const attr_str = Object.entries((_c = options.attributes) !== null && _c !== void 0 ? _c : {}).map(([k, v]) => {
+            k = VNodeUtilities.formatAttributeName("kebab", k);
+            return `[${k}='${v}']`;
+        });
+        const data_str = Object.entries((_d = options.data) !== null && _d !== void 0 ? _d : {}).map(([k, v]) => {
+            k = VNodeUtilities.formatAttributeName("kebab", k);
+            return `[data-${k}='${v}']`;
+        });
+        return `${(_e = options.id) !== null && _e !== void 0 ? _e : ""}${class_str}${attr_str}${data_str}`;
+    }
+}
 class VNodeUtilityClass {
     constructor(node) {
-        this.node = node;
         this.node = node;
     }
     nest(run) {
@@ -566,6 +415,7 @@ function VNodeExtractEl(node) {
     }
     return node;
 }
+
 class PNodeUtil {
     static resetStyles(vnode, to_reset) {
         const options = to_reset.length > 0 ? to_reset : ["content", "style", "class"];
@@ -592,64 +442,10 @@ class PNodeUtil {
         return vnode;
     }
 }
-class P_VNodeUtil {
-    static setStyles(element, styles = {}) {
-        if (typeof styles != "object" ||
-            element instanceof HTMLElement != true) {
-            return;
-        }
-        for (const [key, value] of Object.entries(styles)) {
-            if (key === "variables") {
-                for (const [prop_key, prop_value] of Object.entries(value)) {
-                    element.style.setProperty(`--${prop_key}`, prop_value);
-                }
-            }
-            if (value == undefined) {
-                continue;
-            }
-            element.style[key] = `${value}`;
-        }
-    }
-    static removeStyles(element, styles) {
-        if (element instanceof HTMLElement) {
-            for (const style of styles) {
-                element.style.removeProperty(style);
-            }
-        }
-    }
-    static injectItems(vnode, direction = "append", objs) {
-        if (objs.length < 1) {
-            return vnode;
-        }
-        for (const el of objs) {
-            if (Array.isArray(el)) {
-                objs.splice(objs.indexOf(el), 1, ...el);
-            }
-        }
-        for (const item of objs) {
-            if (item == false || item == null || Array.isArray(item)) {
-                continue;
-            }
-            const extracted = typeof item === "string" ? item : VNodeExtractEl(item);
-            if (direction === "append") {
-                vnode.element.append(extracted);
-            }
-            else {
-                vnode.element.prepend(extracted);
-            }
-        }
-        return vnode;
-    }
-    static attr(element, attributes = {}) {
-        if (typeof attributes == "object" && attributes !== null) {
-            for (const [key, value] of Object.entries(attributes)) {
-                element.setAttribute(key, value + "");
-            }
-        }
-    }
-}
-
 let reserved_events = ["append", "remove"];
+/**
+ * @deprecated
+ */
 class ProxynodeTracking {
     static inDom(element) {
         return this.tracked_in_dom.get(element) == true;
@@ -683,6 +479,9 @@ class ProxynodeTracking {
     }
 }
 ProxynodeTracking.tracked_in_dom = new WeakMap();
+/**
+ * @deprecated
+ */
 class ProxyNode {
     static getEvents(element) {
         const existing = ProxyNode.weak_events.get(element);
@@ -1126,6 +925,226 @@ var proxynode = {
     fetch,
 };
 
+const VOID_EVENT = () => { };
+const ReservedEvents = {
+    // "dom-append": VOID_EVENT,
+    // "dom-remove": VOID_EVENT,
+    connected: VOID_EVENT,
+    disconnected: VOID_EVENT,
+};
+const VNODE_FLAG = (name) => `__vnode_${name}`;
+class VNodeEventGroup {
+    constructor(node) {
+        this.node = node;
+        this.map = new Map();
+        this.node = node;
+    }
+    on(event, callback) {
+        this.map.set(event, callback);
+        this.node.events.on(event, callback);
+        return this;
+    }
+    off(event, callback) {
+        this.map.delete(event);
+        this.node.events.off(event, callback);
+        return this;
+    }
+    clear() {
+        for (const [event, callback] of this.map.entries()) {
+            this.off(event, callback);
+        }
+        return this;
+    }
+}
+let VNodeEventCollection$1 = class VNodeEventCollection {
+    static isReserved(event) {
+        return this.reserved_events.includes(event);
+    }
+    static on(COLLECTION, event, callback) {
+        if (this.isReserved(event)) {
+            // if (event == "dom-append" || event == "dom-remove") {
+            // }
+            COLLECTION.events.on(event, callback);
+        }
+        else {
+            if (event == "keypress" || event == "keydown" || event == "keyup") {
+                VNodeUtilities.setAttributes(COLLECTION.element, {
+                    tabIndex: 0,
+                });
+            }
+            COLLECTION.listeners.add(event, callback);
+            COLLECTION.element.addEventListener(event, callback);
+        }
+    }
+    static off(COLLECTION, event, callback) {
+        if (this.isReserved(event)) {
+            COLLECTION.events.off(event, callback);
+        }
+        else {
+            const group = COLLECTION.listeners;
+            if (callback == undefined) {
+                for (const callback of group.get(event)) {
+                    COLLECTION.element.removeEventListener(event, callback);
+                }
+                group.removeAll(event);
+            }
+            else {
+                group.remove(event, callback);
+                COLLECTION.element.removeEventListener(event, callback);
+            }
+        }
+    }
+    static once(COLLECTION, event, callback) {
+        const once_callback = (...args) => {
+            this.off(COLLECTION, event, once_callback);
+            callback(...args);
+            return void 0;
+        };
+        this.on(COLLECTION, event, (...args) => once_callback(...args));
+    }
+    static emit(COLLECTION, event, ...args) {
+        if (this.isReserved(event)) {
+            COLLECTION.events.emit(event, ...args);
+        }
+        else {
+            COLLECTION.listeners.add(event, ...args);
+            COLLECTION.element.dispatchEvent(new CustomEvent(event, { detail: args }));
+        }
+    }
+    static clear(COLLECTION) {
+        for (const event of COLLECTION.listeners.all.keys()) {
+            // Delete off whole event instead of each individual callback
+            this.off(COLLECTION, event);
+        }
+        COLLECTION.events.all.clear();
+    }
+    constructor(ref) {
+        this.listeners = new SubMap();
+        this.events = new Emitter();
+        this.element = ref;
+    }
+};
+VNodeEventCollection$1.reserved_events = [
+    ...Object.keys(ReservedEvents),
+];
+let VNodeEvents$1 = class VNodeEvents extends VNodeUtilityClass {
+    static getAlways(element) {
+        const found = this.c_events.get(element);
+        if (found != undefined) {
+            return found;
+        }
+        const created = new VNodeEventCollection$1(element);
+        this.c_events.set(element, created);
+        return created;
+    }
+    static on(element, event, callback) {
+        VNodeEventCollection$1.on(this.getAlways(element), event, callback);
+    }
+    static off(element, event, callback) {
+        VNodeEventCollection$1.off(this.getAlways(element), event, callback);
+    }
+    static once(element, event, callback) {
+        VNodeEventCollection$1.once(this.getAlways(element), event, callback);
+    }
+    static emit(element, event, ...args) {
+        const COLLECTION = this.c_events.get(element);
+        if (COLLECTION == undefined)
+            return;
+        VNodeEventCollection$1.emit(COLLECTION, event, ...args);
+    }
+    static clear(element) {
+        const COLLECTION = this.c_events.get(element);
+        if (COLLECTION == undefined)
+            return;
+        VNodeEventCollection$1.clear(COLLECTION);
+        this.c_events.delete(COLLECTION.element);
+    }
+    constructor(node) {
+        super(node);
+        this.element = this.node.element;
+    }
+    call(...args) {
+        return this.nest(...args);
+    }
+    on(event, callback) {
+        if (event == "connected" || event == "disconnected") {
+            StateTracking.initNodeTracking(this.node);
+        }
+        VNodeEvents.on(this.element, event, callback);
+        return this;
+    }
+    off(event, callback) {
+        VNodeEvents.off(this.element, event, callback);
+        return this;
+    }
+    once(event, callback) {
+        VNodeEvents.once(this.element, event, callback);
+        return this;
+    }
+    clear() {
+        VNodeEvents.clear(this.element);
+    }
+    useSignal(events, callback) {
+        const handler = () => callback(this);
+        const normalized = events.flatMap(normalizeEvent);
+        this.on("connected", () => {
+            for (const e of normalized) {
+                e.on(handler);
+            }
+        });
+        this.on("disconnected", () => {
+            for (const e of normalized) {
+                e.off(handler);
+            }
+        });
+        return this;
+    }
+    useStates(states, callback, immediate = false) {
+        const getValues = () => states.map((s) => s.get());
+        const handler = () => callback(getValues(), this);
+        if (immediate == true) {
+            handler();
+        }
+        this.on("connected", () => {
+            for (const state of states) {
+                state.change.on(handler);
+            }
+        });
+        this.on("disconnected", () => {
+            for (const state of states) {
+                state.change.off(handler);
+            }
+        });
+        return this;
+    }
+};
+VNodeEvents$1.c_events = new WeakMap();
+function normalizeEvent(e) {
+    if (e instanceof Signal) {
+        return [
+            {
+                on: (h) => e.on(h),
+                off: (h) => e.off(h),
+            },
+        ];
+    }
+    else if (e instanceof Emitter) {
+        return [
+            {
+                on: (h) => e.on("*", h),
+                off: (h) => e.off("*", h),
+            },
+        ];
+    }
+    else {
+        const [emitter, names] = e;
+        return names.map((name) => ({
+            on: (h) => emitter.on(name, h),
+            off: (h) => emitter.off(name, h),
+        }));
+    }
+}
+
 function getAllRemovedNodes(node) {
     const nodes = [node];
     node.childNodes.forEach((child) => {
@@ -1133,7 +1152,7 @@ function getAllRemovedNodes(node) {
     });
     return nodes;
 }
-class VNodeObserver {
+class VNodeStateObserver {
     inDom(element) {
         return this.tracked_in_dom.get(element) == true;
     }
@@ -1153,14 +1172,14 @@ class VNodeObserver {
                 const element = node.element;
                 if (document.body.contains(element)) {
                     if (this.inDom(element) != true) {
-                        VNodeEvents$1.emit(element, "dom-append");
+                        VNodeEvents.emit(element, "connected");
                     }
                     this.tracked_in_dom.set(element, true);
                 }
                 else if (this.inDom(element)) {
                     /* Was in dom but removed */
                     this.tracked_in_dom.set(element, false);
-                    VNodeEvents$1.emit(element, "dom-remove");
+                    VNodeEvents.emit(element, "disconnected");
                 }
             }
         });
@@ -1175,7 +1194,7 @@ class StateTracking {
         node.element[this.ref_prop] = new WeakRef(node);
         // node.element.setAttribute(StateTracking.flag, "");
         node.attr({
-            [StateTracking.flag]: "",
+            [this.flag]: "",
         });
     }
     static init(options) {
@@ -1183,7 +1202,7 @@ class StateTracking {
         if ((options === null || options === void 0 ? void 0 : options.all) == true) {
             VNode.events.on("init", init_cb);
         }
-        const observer = new VNodeObserver();
+        const observer = new VNodeStateObserver();
         return {
             observer,
             destroy() {
@@ -1196,18 +1215,82 @@ class StateTracking {
     }
     static filterQuery(list) {
         return list
-            .map((e) => { var _a; return (_a = e === null || e === void 0 ? void 0 : e[StateTracking.ref_prop]) === null || _a === void 0 ? void 0 : _a.deref(); })
+            .map((e) => { var _a; return (_a = e === null || e === void 0 ? void 0 : e[this.ref_prop]) === null || _a === void 0 ? void 0 : _a.deref(); })
             .filter((e) => e instanceof VNode);
     }
     static query() {
-        const found = document.querySelectorAll(`[${StateTracking.flag}]`);
+        const found = document.querySelectorAll(`[${this.flag}]`);
         return Array.from(found)
-            .map((e) => { var _a; return (_a = e === null || e === void 0 ? void 0 : e[StateTracking.ref_prop]) === null || _a === void 0 ? void 0 : _a.deref(); })
+            .map((e) => { var _a; return (_a = e === null || e === void 0 ? void 0 : e[this.ref_prop]) === null || _a === void 0 ? void 0 : _a.deref(); })
             .filter((e) => e instanceof VNode);
     }
 }
-StateTracking.flag = "__vnode_e";
+// state flag
+StateTracking.flag = VNODE_FLAG("state");
 StateTracking.ref_prop = "__vnode";
+class VNodeSizeObserver {
+    inDom(element) {
+        return this.tracked_in_dom.get(element) == true;
+    }
+    constructor() {
+        this.tracked_in_dom = new WeakMap();
+        this.observer = new ResizeObserver(() => {
+            const queried = SizeTracking.query();
+            for (const node of queried) {
+                const cache_size = SizeTracking.sizes.get(node.element);
+                const bounds = node.getBounds();
+                const current_size = {
+                    width: bounds.width,
+                    height: bounds.height,
+                };
+                if (cache_size == undefined ||
+                    cache_size.width != current_size.width ||
+                    cache_size.height != current_size.height) {
+                    SizeTracking.sizes.set(node.element, current_size);
+                    VNodeEvents.emit(node.element, "resize");
+                }
+            }
+        });
+        this.observer.observe(document.body, {});
+    }
+}
+class SizeTracking {
+    static initNodeTracking(node) {
+        node.element[this.ref_prop] = new WeakRef(node);
+        const bounds = node.getBounds();
+        this.sizes.set(node.element, {
+            width: bounds.width,
+            height: bounds.height,
+        });
+        // node.element.setAttribute(StateTracking.flag, "");
+        node.attr({
+            [this.flag]: "",
+        });
+    }
+    static init(options) {
+        const observer = new VNodeSizeObserver();
+        return {
+            observer,
+            destroy() {
+                observer.observer.disconnect();
+            },
+        };
+    }
+    static filterQuery(list) {
+        return list
+            .map((e) => { var _a; return (_a = e === null || e === void 0 ? void 0 : e[this.ref_prop]) === null || _a === void 0 ? void 0 : _a.deref(); })
+            .filter((e) => e instanceof VNode);
+    }
+    static query() {
+        const found = document.querySelectorAll(`[${this.flag}]`);
+        return Array.from(found)
+            .map((e) => { var _a; return (_a = e === null || e === void 0 ? void 0 : e[this.ref_prop]) === null || _a === void 0 ? void 0 : _a.deref(); })
+            .filter((e) => e instanceof VNode);
+    }
+}
+SizeTracking.flag = VNODE_FLAG("size");
+SizeTracking.ref_prop = "__vnode";
+SizeTracking.sizes = new WeakMap();
 
 class VNodeAnimation {
     constructor(node, styles, options) {
@@ -1220,7 +1303,7 @@ class VNodeAnimation {
         if (typeof options === "object") {
             this.animation.addEventListener("finish", () => {
                 if (options.save === true) {
-                    P_VNodeUtil.setStyles(this.node.element, styles[end_index]);
+                    VNodeUtilities.setStyles(this.node.element, styles[end_index]);
                 }
             });
         }
@@ -1240,11 +1323,11 @@ class VNodeStyle extends VNodeUtilityClass {
     // 	return this.update(...args).node;
     // }
     update(styles = {}) {
-        P_VNodeUtil.setStyles(this.node.element, styles);
+        VNodeUtilities.setStyles(this.node.element, styles);
         return this;
     }
     remove(...styles) {
-        P_VNodeUtil.removeStyles(this.node.element, styles);
+        VNodeUtilities.removeStyles(this.node.element, styles);
         return this;
     }
     animate(styles, options) {
@@ -1316,7 +1399,7 @@ class VNodeClasses extends VNodeUtilityClass {
         return this.toggle(class_name, status);
     }
 }
-let VNodeEventCollection$1 = class VNodeEventCollection {
+class VNodeEventCollection {
     static isReserved(event) {
         return this.reserved_events.includes(event);
     }
@@ -1331,465 +1414,9 @@ let VNodeEventCollection$1 = class VNodeEventCollection {
         }
         else {
             if (event == "keypress" || event == "keydown" || event == "keyup") {
-                P_VNodeUtil.attr(COLLECTION.element, { tabIndex: 0 });
-            }
-            COLLECTION.listeners.add(event, callback);
-            COLLECTION.element.addEventListener(event, callback);
-        }
-    }
-    static off(COLLECTION, event, callback) {
-        if (this.isReserved(event)) {
-            COLLECTION.events.off(event, callback);
-        }
-        else {
-            const group = COLLECTION.listeners;
-            if (callback == undefined) {
-                for (const callback of group.get(event)) {
-                    COLLECTION.element.removeEventListener(event, callback);
-                }
-                group.removeAll(event);
-            }
-            else {
-                group.remove(event, callback);
-                COLLECTION.element.removeEventListener(event, callback);
-            }
-        }
-    }
-    static once(COLLECTION, event, callback) {
-        const once_callback = (...args) => {
-            this.off(COLLECTION, event, once_callback);
-            callback(...args);
-            return void 0;
-        };
-        this.on(COLLECTION, event, (...args) => once_callback(...args));
-    }
-    static emit(COLLECTION, event, ...args) {
-        if (this.isReserved(event)) {
-            COLLECTION.events.emit(event, ...args);
-        }
-        else {
-            COLLECTION.listeners.add(event, ...args);
-            COLLECTION.element.dispatchEvent(new CustomEvent(event, { detail: args }));
-        }
-    }
-    static clear(COLLECTION) {
-        for (const event of COLLECTION.listeners.all.keys()) {
-            // Delete off whole event instead of each individual callback
-            this.off(COLLECTION, event);
-        }
-        COLLECTION.events.all.clear();
-    }
-    constructor(ref) {
-        this.listeners = new SubMap();
-        this.events = new Emitter();
-        this.element = ref;
-    }
-};
-VNodeEventCollection$1.reserved_events = [
-    "dom-append",
-    "dom-remove",
-];
-let VNodeEvents$1 = class VNodeEvents extends VNodeUtilityClass {
-    static getAlways(element) {
-        const found = this.c_events.get(element);
-        if (found != undefined) {
-            return found;
-        }
-        const created = new VNodeEventCollection$1(element);
-        this.c_events.set(element, created);
-        return created;
-    }
-    static on(element, event, callback) {
-        VNodeEventCollection$1.on(this.getAlways(element), event, callback);
-    }
-    static off(element, event, callback) {
-        VNodeEventCollection$1.off(this.getAlways(element), event, callback);
-    }
-    static once(element, event, callback) {
-        VNodeEventCollection$1.once(this.getAlways(element), event, callback);
-    }
-    static emit(element, event, ...args) {
-        const COLLECTION = this.c_events.get(element);
-        if (COLLECTION == undefined)
-            return;
-        VNodeEventCollection$1.emit(COLLECTION, event, ...args);
-    }
-    static clear(element) {
-        const COLLECTION = this.c_events.get(element);
-        if (COLLECTION == undefined)
-            return;
-        VNodeEventCollection$1.clear(COLLECTION);
-        this.c_events.delete(COLLECTION.element);
-    }
-    constructor(node) {
-        super(node);
-        this.element = this.node.element;
-    }
-    call(...args) {
-        return this.nest(...args);
-    }
-    on(event, callback) {
-        if (event == "dom-append" || event == "dom-remove") {
-            StateTracking.initNodeTracking(this.node);
-        }
-        VNodeEvents.on(this.element, event, callback);
-        return this;
-    }
-    off(event, callback) {
-        VNodeEvents.off(this.element, event, callback);
-        return this;
-    }
-    once(event, callback) {
-        VNodeEvents.once(this.element, event, callback);
-        return this;
-    }
-    clear() {
-        VNodeEvents.clear(this.element);
-    }
-};
-VNodeEvents$1.c_events = new WeakMap();
-
-var _a;
-class VNode {
-    static getElement(el) {
-        if (typeof el === "string") {
-            return document.createElement(el);
-        }
-        else if (el instanceof HTMLElement ||
-            el instanceof HTMLInputElement) {
-            return el;
-        }
-        else if (el instanceof VNode) {
-            return el.element;
-        }
-        else if (el instanceof ProxyNode) {
-            return el.element;
-        }
-        else {
-            throw new Error("Invalid element");
-        }
-    }
-    static from(el) {
-        const element = VNode.getElement(el);
-        return new VNode(element);
-    }
-    constructor(element) {
-        trapValue(this, "style", () => makeCallableClass(VNodeStyle, this));
-        trapValue(this, "class", () => makeCallableClass(VNodeClasses, this));
-        trapValue(this, "events", () => makeCallableClass(VNodeEvents$1, this));
-        if (typeof element === "string") {
-            this.element = document.createElement(element);
-        }
-        else {
-            this.element = VNode.Util.extractEl(element);
-        }
-        if (VNode.send_events === true) {
-            VNode.events.emit("add", this);
-        }
-        VNode.events.emit("init", this);
-    }
-    attr(attributes = {}) {
-        P_VNodeUtil.attr(this.element, attributes);
-        return this;
-    }
-    swap(node) {
-        const new_node = VNode.Util.extractEl(node);
-        this.element.replaceWith(new_node);
-        this.element = new_node;
-        return this;
-    }
-    id(value = undefined) {
-        if (value == undefined) {
-            return this.element.id;
-        }
-        else {
-            this.element.id = value;
-            return this;
-        }
-    }
-    append(...objs) {
-        return P_VNodeUtil.injectItems(this, "append", objs);
-    }
-    prepend(...objs) {
-        return P_VNodeUtil.injectItems(this, "prepend", objs);
-    }
-    appendTo(obj, direction = "append") {
-        if (obj == false) {
-            return this;
-        }
-        if (direction === "append") {
-            obj.append(VNodeExtractEl(this.element));
-        }
-        else {
-            obj.prepend(VNodeExtractEl(this.element));
-        }
-        return this;
-    }
-    getBounds() {
-        return this.element.getBoundingClientRect();
-    }
-    value(value = undefined) {
-        if (this.element instanceof HTMLInputElement ||
-            this.element instanceof HTMLSelectElement) {
-            if (value == undefined) {
-                return this.element.value;
-            }
-            else {
-                this.element.value = value.toString();
-                return this;
-            }
-        }
-        else if (this.element instanceof HTMLImageElement) {
-            if (value == undefined) {
-                return this.element.src;
-            }
-            else {
-                this.element.src = value.toString();
-                return this;
-            }
-        }
-        else {
-            if (value == undefined) {
-                return this.element.textContent;
-            }
-            else {
-                this.element.textContent = value.toString();
-                return this;
-            }
-        }
-    }
-    focus() {
-        if (this.inDom()) {
-            if (this.element instanceof HTMLElement) {
-                this.element.focus();
-            }
-        }
-        else {
-            setTimeout(() => {
-                if (this.element instanceof HTMLElement) {
-                    this.element.focus();
-                }
-            }, 0);
-        }
-        return this;
-    }
-    ref(run) {
-        run(this);
-        return this;
-    }
-    remove() {
-        this.element.remove();
-        // if (VNode.send_events === true) {
-        // 	VNode.events.emit("remove", this);
-        // }
-        return this;
-    }
-    setContent(...content) {
-        return this.clear().append(...content);
-    }
-    /**
-     * Clears inner content
-     */
-    clear() {
-        this.element.textContent = "";
-        return this;
-    }
-    // public setStyles(styles: StyleDeclarationWithProps) {
-    // 	this.style.update(styles);
-    // 	return this;
-    // }
-    // public setClasses(...classes: string[]) {
-    // 	this.class.set(...classes);
-    // 	return this;
-    // }
-    inDom(parent = document.body) {
-        return parent.contains(this.element);
-    }
-    scroll(x = 0, y = 0) {
-        this.element.scroll(x, y);
-        return this;
-    }
-}
-VNode.Util = (_a = class VNodeUtilExtend {
-        static qs(selector, element = document) {
-            const current = element.querySelector(selector);
-            return current ? new VNode(current) : null;
-        }
-        static qsAll(selector, element = document) {
-            return Array.from(element.querySelectorAll(selector)).map((current) => {
-                return new VNode(current);
-            });
-        }
-        static getChildren(extractable) {
-            const extracted = VNodeExtractEl(extractable);
-            return Array.from(extracted.children).map((document_el) => new VNode(document_el));
-        }
-    },
-    _a.extractEl = VNodeExtractEl,
-    _a);
-VNode.indexing = new Map();
-/**
- * Replacement for 'newNode' on ProxyNode Utilities
- */
-VNode.new = new Proxy({}, {
-    get(target, element_tag) {
-        return new VNode(document.createElement(element_tag));
-        // generateProxyNode(document.createElement(elementTag));
-    },
-});
-/**
- * @deprecated Use VNode.Util.extractEl
- */
-VNode.extractEl = VNodeExtractEl;
-VNode.send_events = false;
-VNode.events = new Emitter();
-
-class StyledNodeManager {
-    constructor(id) {
-        this.id = id;
-        this.class = new JssClass("." + this.getClassName(), {});
-    }
-    /**
-     * Returns the generated classname prefixed by vns_
-     * which stands for Virtual Node Style -
-     */
-    getClassName() {
-        return `vns_${this.id.toString(16)}`;
-    }
-}
-class StyledVNode extends VNode {
-    static getConstructor(ref) {
-        return ref.constructor;
-    }
-    static findOrCreate(c, styles) {
-        const is_new = StyledVNode.managers.get(c) == undefined;
-        const manager = this.getManager(c);
-        if (is_new) {
-            if (styles instanceof JssStyle) {
-                manager.class.data = styles.data;
-            }
-            else {
-                manager.class.data = styles;
-            }
-            this.sheet.style.inject(manager.class);
-            this.sheet.build();
-        }
-        return manager.getClassName();
-    }
-    static connect(class_ref, styles) {
-        const c = this.getConstructor(class_ref);
-        if (styles == undefined) {
-            const manager = StyledVNode.managers.get(c);
-            if (manager != undefined) {
-                class_ref.class.add(manager.getClassName());
-            }
-        }
-        else {
-            const class_name = this.findOrCreate(c, styles);
-            class_ref.class.add(class_name);
-        }
-    }
-    static getManager(c) {
-        let manager = StyledVNode.managers.get(c);
-        if (manager == undefined) {
-            const id = ++StyledVNode.class_index;
-            manager = new StyledNodeManager(id);
-            StyledVNode.managers.set(c, manager);
-        }
-        return manager;
-    }
-    /** Destroys the class and it's relations for a vnode class */
-    static destroy(class_ref) {
-        const c = this.getConstructor(class_ref);
-        const manager = this.getManager(c);
-        const jss_class = this.sheet.style.list.get(manager.class.name);
-        if (jss_class) {
-            this.sheet.style.remove(jss_class);
-            this.sheet.build();
-        }
-        StyledVNode.managers.delete(c);
-    }
-    static init() {
-        this.sheet.insert();
-    }
-    static validStyles(styles) {
-        return styles;
-    }
-    constructor(element) {
-        super(element);
-        StyledVNode.connect(this, this.getConstructor().styles);
-    }
-    getConstructor() {
-        return this.constructor;
-    }
-}
-StyledVNode.managers = new Map();
-StyledVNode.class_index = 0;
-/** Should not be changed */
-StyledVNode.sheet = new JCSS();
-/** May be overridden by extending the class */
-StyledVNode.styles = {};
-class JCSSTracker {
-    constructor(instance, observer) {
-        this.instance = instance;
-        this.instance = instance;
-        this.instance.insert();
-        this.observer = observer !== null && observer !== void 0 ? observer : new ObserverTracking();
-        function callback() {
-            if (this.instance.getUsageCount() === 0) {
-                this.instance.remove();
-            }
-            else {
-                this.instance.insert();
-            }
-        }
-        this.callback = callback.bind(this);
-    }
-    enable() {
-        this.disable();
-        this.observer.events.off("any", this.callback);
-    }
-    disable() {
-        this.observer.events.off("any", this.callback);
-    }
-}
-
-class VNodeEventGroup {
-    constructor(node) {
-        this.node = node;
-        this.map = new Map();
-        this.node = node;
-    }
-    on(event, callback) {
-        this.map.set(event, callback);
-        this.node.events.on(event, callback);
-        return this;
-    }
-    off(event, callback) {
-        this.map.delete(event);
-        this.node.events.off(event, callback);
-        return this;
-    }
-    clear() {
-        for (const [event, callback] of this.map.entries()) {
-            this.off(event, callback);
-        }
-        return this;
-    }
-}
-class VNodeEventCollection {
-    static isReserved(event) {
-        return this.reserved_events.includes(event);
-    }
-    static on(COLLECTION, event, callback) {
-        if (this.isReserved(event)) {
-            // if (event == "dom-append" || event == "dom-remove") {
-            // }
-            COLLECTION.events.on(event, callback);
-        }
-        else {
-            if (event == "keypress" || event == "keydown" || event == "keyup") {
-                P_VNodeUtil.attr(COLLECTION.element, { tabIndex: 0 });
+                VNodeUtilities.setAttributes(COLLECTION.element, {
+                    tabIndex: 0,
+                });
             }
             COLLECTION.listeners.add(event, callback);
             COLLECTION.element.addEventListener(event, callback);
@@ -1844,8 +1471,9 @@ class VNodeEventCollection {
     }
 }
 VNodeEventCollection.reserved_events = [
-    "dom-append",
-    "dom-remove",
+    ...Object.keys(ReservedEvents),
+    // "dom-append",
+    // "dom-remove",
 ];
 class VNodeEvents extends VNodeUtilityClass {
     static getAlways(element) {
@@ -1887,8 +1515,11 @@ class VNodeEvents extends VNodeUtilityClass {
         return this.nest(...args);
     }
     on(event, callback) {
-        if (event == "dom-append" || event == "dom-remove") {
+        if (event == "connected" || event == "disconnected") {
             StateTracking.initNodeTracking(this.node);
+        }
+        if (event == "resize") {
+            SizeTracking.initNodeTracking(this.node);
         }
         VNodeEvents.on(this.element, event, callback);
         return this;
@@ -1906,6 +1537,771 @@ class VNodeEvents extends VNodeUtilityClass {
     }
 }
 VNodeEvents.c_events = new WeakMap();
+
+var _a;
+class VNode {
+    static getElement(el) {
+        if (typeof el === "string") {
+            return document.createElement(el);
+        }
+        else if (el instanceof HTMLElement ||
+            el instanceof HTMLInputElement) {
+            return el;
+        }
+        else if (el instanceof VNode) {
+            return el.element;
+        }
+        else if (el instanceof ProxyNode) {
+            return el.element;
+        }
+        else {
+            throw new Error("Invalid element");
+        }
+    }
+    static from(el) {
+        const element = VNode.getElement(el);
+        return new VNode(element);
+    }
+    constructor(element) {
+        trapValue(this, "style", () => makeCallableClass(VNodeStyle, this));
+        trapValue(this, "class", () => makeCallableClass(VNodeClasses, this));
+        trapValue(this, "events", () => makeCallableClass(VNodeEvents, this));
+        if (typeof element === "string") {
+            this.element = document.createElement(element);
+        }
+        else {
+            this.element = VNode.Util.extractEl(element);
+        }
+        if (VNode.send_events === true) {
+            VNode.events.emit("add", this);
+        }
+        VNode.events.emit("init", this);
+    }
+    ref(run) {
+        run(this);
+        return this;
+    }
+    use(plugins) {
+        for (const plugin of plugins) {
+            plugin(this);
+        }
+    }
+    attr(attributes = {}) {
+        VNodeUtilities.setAttributes(this.element, attributes);
+        return this;
+    }
+    swap(node) {
+        const new_node = VNode.Util.extractEl(node);
+        this.element.replaceWith(new_node);
+        this.element = new_node;
+        return this;
+    }
+    id(value = undefined) {
+        if (value == undefined) {
+            return this.element.id;
+        }
+        else {
+            this.element.id = value;
+            return this;
+        }
+    }
+    append(...objs) {
+        VNodeUtilities.injectItems(this.element, "append", objs);
+        return this;
+    }
+    prepend(...objs) {
+        VNodeUtilities.injectItems(this.element, "prepend", objs);
+        return this;
+    }
+    appendTo(obj, direction = "append") {
+        if (obj == false) {
+            return this;
+        }
+        else {
+            if (direction === "append") {
+                obj.append(VNodeExtractEl(this.element));
+            }
+            else {
+                obj.prepend(VNodeExtractEl(this.element));
+            }
+            return this;
+        }
+    }
+    getBounds() {
+        return this.element.getBoundingClientRect();
+    }
+    value(value = undefined) {
+        if (this.element instanceof HTMLInputElement ||
+            this.element instanceof HTMLSelectElement) {
+            if (value == undefined) {
+                return this.element.value;
+            }
+            else {
+                this.element.value = value.toString();
+                return this;
+            }
+        }
+        else if (this.element instanceof HTMLImageElement) {
+            if (value == undefined) {
+                return this.element.src;
+            }
+            else {
+                this.element.src = value.toString();
+                return this;
+            }
+        }
+        else {
+            if (value == undefined) {
+                return this.element.textContent;
+            }
+            else {
+                this.element.textContent = value.toString();
+                return this;
+            }
+        }
+    }
+    dataset(record) {
+        if (record == undefined) {
+            return this.element.dataset;
+        }
+        if (record == "clear") {
+            return this.dataset(Object.fromEntries(Object.keys(this.element.dataset).map((key) => [
+                VNodeUtilities.formatAttributeName("camel", key),
+                undefined,
+            ])));
+        }
+        for (let [key, value] of Object.entries(record)) {
+            key = VNodeUtilities.formatAttributeName("camel", key);
+            if (value == undefined) {
+                delete this.element.dataset[key];
+            }
+            else {
+                this.element.dataset[key] = value;
+            }
+        }
+        return this;
+    }
+    focus() {
+        if (this.inDom()) {
+            if (this.element instanceof HTMLElement) {
+                this.element.focus();
+            }
+        }
+        else {
+            setTimeout(() => {
+                if (this.element instanceof HTMLElement) {
+                    this.element.focus();
+                }
+            }, 0);
+        }
+        return this;
+    }
+    remove() {
+        this.element.remove();
+        return this;
+    }
+    setContent(...content) {
+        return this.clear().append(...content);
+    }
+    /** Clears inner content */
+    clear() {
+        this.element.textContent = "";
+        return this;
+    }
+    inDom(parent = document.body) {
+        return parent.contains(this.element);
+    }
+    scroll(x = 0, y = 0) {
+        this.element.scroll(x, y);
+        return this;
+    }
+}
+VNode.Utilities = VNodeUtilities;
+VNode.Util = (_a = class VNodeUtilExtend {
+        static qs(selector, element = document) {
+            const current = element.querySelector(selector);
+            return current ? new VNode(current) : null;
+        }
+        static qsAll(selector, element = document) {
+            return Array.from(element.querySelectorAll(selector)).map((current) => {
+                return new VNode(current);
+            });
+        }
+        static where(options, element = document) {
+            const found = _a.qsAll(VNodeUtilities.whereString(options), element);
+            if (options.text != undefined) {
+                return VNodeUtilities.elementTextFind(options.text, found.map((e) => [e.element.textContent, e])).map((vec) => vec[1]);
+            }
+            else {
+                return found;
+            }
+        }
+        static getChildren(extractable) {
+            const extracted = VNodeExtractEl(extractable);
+            return Array.from(extracted.children).map((document_el) => new VNode(document_el));
+        }
+    },
+    _a.extractEl = VNodeExtractEl,
+    _a);
+VNode.indexing = new Map();
+/**
+ * Replacement for 'newNode' on ProxyNode Utilities
+ * @deprecated
+ */
+VNode.of = new Proxy({}, {
+    get(target, element_tag) {
+        return new VNode(document.createElement(element_tag));
+        // generateProxyNode(document.createElement(elementTag));
+    },
+});
+/**
+ * @deprecated Use VNode.Util.extractEl
+ */
+VNode.extractEl = VNodeExtractEl;
+VNode.send_events = false;
+VNode.events = new Emitter();
+
+/**
+ * Virtual Node (Functional implementation)
+ */
+function vn(tag, props, ...children) {
+    const node = new VNode(tag);
+    if (props) {
+        if (props.attributes) {
+            node.attr(props.attributes);
+        }
+        if (props.properties) {
+            Object.assign(node.element, props.properties);
+        }
+        if (props.style) {
+            Object.assign(node.style, props.style);
+        }
+        if (props.dataset) {
+            for (const [key, value] of Object.entries(props.dataset)) {
+                node.element.dataset[key] = value;
+            }
+        }
+        if (props.class) {
+            node.class.add(...props.class);
+        }
+        if (props.on) {
+            for (const [event, handler] of Object.entries(props.on)) {
+                node.events.on(event, handler);
+            }
+        }
+        if (props.ref) {
+            props.ref(node);
+        }
+    }
+    node.append(...children);
+    return node;
+}
+/**
+ * Virtual Node - Fragment
+ */
+function VNFragment(...children) {
+    const frag = document.createDocumentFragment();
+    const items = VNodeUtilities.flattenElements(children);
+    for (const item of items)
+        frag.appendChild(item);
+    return frag;
+}
+
+class ObserverTracking {
+    static inDom(element) {
+        return this.tracked_in_dom.get(element) == true;
+    }
+    static handle(element) {
+        var _a, _b;
+        // If it's in dom now but wasn't before
+        if (document.body.contains(element)) {
+            if (this.inDom(element) != true) {
+                (_a = this.getEvents(element)) === null || _a === void 0 ? void 0 : _a.emit("append");
+            }
+            this.tracked_in_dom.set(element, true);
+        }
+        else if (this.inDom(element)) {
+            /* Was in dom but removed */
+            this.tracked_in_dom.set(element, false);
+            (_b = this.getEvents(element)) === null || _b === void 0 ? void 0 : _b.emit("remove");
+        }
+    }
+    static getEvents(element) {
+        const existing = this.weak_events.get(element);
+        if (existing) {
+            return existing;
+        }
+        else {
+            const emitter = new Emitter();
+            this.weak_events.set(element, emitter);
+            return emitter;
+        }
+    }
+    constructor() {
+        // private wrap_map: Map<ObservedCallback, ObservedCallback> = new Map();
+        this.list = new Set();
+        this.events = new Emitter();
+        this.observer = new MutationObserver(() => {
+            for (const element of this.list) {
+                ObserverTracking.handle(element);
+            }
+            this.events.emit("any");
+        });
+        this.observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
+    }
+    cleanupElement(element) {
+        // Do cleanup
+        if (ObserverTracking.getEvents(element).all.size == 0) {
+            this.list.delete(element);
+        }
+    }
+    on(element, event, callback) {
+        this.list.add(element);
+        ObserverTracking.getEvents(element).on(event, callback);
+        return this;
+    }
+    off(element, event, callback) {
+        ObserverTracking.getEvents(element).off(event, callback);
+        this.cleanupElement(element);
+        return this;
+    }
+    once(element, event, callback) {
+        this.list.add(element);
+        ObserverTracking.getEvents(element)
+            .once(event, callback)
+            .once(event, () => this.cleanupElement(element));
+        return this;
+    }
+}
+ObserverTracking.weak_events = new WeakMap();
+ObserverTracking.tracked_in_dom = new WeakMap();
+
+/******************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
+/* global Reflect, Promise, SuppressedError, Symbol */
+
+
+function __rest(s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+}
+
+function __awaiter(thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+}
+
+typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
+    var e = new Error(message);
+    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+};
+
+function camelToKebab(str) {
+    return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+}
+class OraCssStyle {
+    static parseContents(data) {
+        return Object.entries(data).map(([name, value]) => `${camelToKebab(name)}: ${value}`);
+    }
+    static resolve(name, data) {
+        const formatted_styles = OraCssStyle.parseContents(data).join("; ");
+        return `${name} { ${formatted_styles} }`;
+    }
+    static parseExtend(style_name, extend) {
+        return Object.entries(extend).map(([key, value]) => {
+            let style_name_out;
+            if (key.includes("&")) {
+                if (key.startsWith("&")) {
+                    key = key.slice(1);
+                }
+                style_name_out = style_name + key.replace(/&/g, style_name);
+            }
+            else {
+                style_name_out = style_name + key;
+            }
+            return OraCssStyle.resolve(style_name_out, value);
+        });
+    }
+    static toString(style_name, data, indent = 0) {
+        const { extend, media: media_list } = data, other_styles = __rest(data, ["extend", "media"]);
+        const indent_string = "\t".repeat(indent);
+        const line_seperator = `\n${indent_string}`;
+        let strings = [];
+        strings.push(OraCssStyle.resolve(style_name, other_styles));
+        if (media_list != undefined) {
+            const k = OraCssStyle.Media.toString(style_name, media_list, indent);
+            strings.push(k);
+        }
+        if (extend != undefined) {
+            strings.push(...OraCssStyle.parseExtend(style_name, extend));
+        }
+        return ((indent > 0 ? line_seperator : "") +
+            strings.join(" " + line_seperator));
+    }
+    constructor(name, data) {
+        this.name = name;
+        this.data = data;
+    }
+    toString() {
+        return OraCssStyle.toString(this.name, this.data);
+    }
+}
+OraCssStyle.Media = class OraCssMedia {
+    static createString(options, styles, indent = 0) {
+        let indent_string = "\t".repeat(indent);
+        let parts = [];
+        if (options.min_width) {
+            parts.push(`(min-width: ${options.min_width})`);
+        }
+        if (options.max_width) {
+            parts.push(`(max-width: ${options.max_width})`);
+        }
+        if (options.min_height) {
+            parts.push(`(min-height: ${options.min_height})`);
+        }
+        if (options.max_height) {
+            parts.push(`(max-height: ${options.max_height})`);
+        }
+        const parts_string = parts.join(" and ");
+        const inner_styles = styles
+            .map(([name, options]) => {
+            return OraCssStyle.toString(name, options, indent + 1);
+        })
+            .join("\n");
+        return `@media ${parts_string} {${inner_styles}\n${indent_string}}`;
+    }
+    static toString(style_name, options, indent = 0) {
+        let s = [];
+        for (const m of options) {
+            const other_styles = __rest(m.styles, []);
+            const str = OraCssStyle.Media.createString(m.if, [[style_name, other_styles]], indent);
+            s.push(str);
+        }
+        return s.join("🐱🐱🐱");
+    }
+};
+class OraCssClass extends OraCssStyle {
+    constructor(classname, options) {
+        super(`.${classname}`, options);
+        this.classname = classname;
+    }
+    getName() {
+        return this.classname;
+    }
+}
+class OraCssAnimation {
+    static toString(name, options) {
+        const formatted_styles = options.map(([position, data]) => {
+            const dat = OraCssStyle.parseContents(data);
+            let range = Array.isArray(position)
+                ? position.map(camelToKebab).join("; ")
+                : camelToKebab(position);
+            return `${range} { ${dat.join(";")} }`;
+        });
+        return `@keyframes ${name} { ${formatted_styles.join(" ")} }`;
+    }
+    constructor(name, options) {
+        this.name = name;
+        this.options = options;
+    }
+    toString() {
+        return OraCssAnimation.toString(this.name, this.options);
+    }
+}
+class OraCssDepot {
+    constructor(manager, generator) {
+        this.manager = manager;
+        this.generator = generator;
+        this.counter = 0;
+        this.indexes = new Map();
+        this.list = new Map();
+    }
+    call(run) {
+        run(this);
+        return this.manager;
+    }
+    has(name) {
+        return this.list.has(name);
+    }
+    insert(instance) {
+        const index = this.counter++;
+        this.list.set(instance.name, instance);
+        this.indexes.set(instance, index);
+    }
+    add(...args) {
+        switch (arguments.length) {
+            case 1: {
+                this.insert(args[0]);
+                break;
+            }
+            case 2: {
+                this.insert(this.generator(args[0], args[1]));
+                break;
+            }
+        }
+        return this;
+    }
+    remove(input) {
+        if (typeof input == "string") {
+            const found = this.list.get(input);
+            if (found == null) {
+                return false;
+            }
+            else {
+                // cycles back to remove instanced version
+                return this.remove(found);
+            }
+        }
+        else {
+            const index = this.indexes.get(input);
+            if (index == null) {
+                return false;
+            }
+            else {
+                this.list.delete(input.name);
+                this.indexes.delete(input);
+                return true;
+            }
+        }
+    }
+}
+class StyleManager extends OraCssDepot {
+    constructor(manager) {
+        super(manager, (name, options) => new OraCssStyle(name, options));
+    }
+}
+class AnimationManager extends OraCssDepot {
+    constructor(manager) {
+        super(manager, (name, options) => new OraCssAnimation(name, options));
+    }
+}
+class OraCss {
+    constructor() {
+        this.element = document.createElement("style");
+        this.styles = makeCallableClass(StyleManager, this);
+        this.animations = makeCallableClass(AnimationManager, this);
+    }
+    static createPluginStyle(callback) {
+        return callback;
+    }
+    static createPluginAnimation(callback) {
+        return callback;
+    }
+    static createStyle(name, data) {
+        return new OraCssStyle(name, data);
+    }
+    static createClass(name, data) {
+        return new OraCssClass(name, data);
+    }
+    static createAnimation(name, options) {
+        return new OraCssAnimation(name, options);
+    }
+    /**
+     * inserts stylesheet into the dom onto element then stores reference
+     */
+    attach(element = document.head) {
+        if (element !== this.attatched) {
+            if (this.attatched != undefined) {
+                this.detach();
+            }
+            this.attatched = element;
+            this.attatched.appendChild(this.element);
+            this.build();
+        }
+        return this;
+    }
+    /**
+     * removes stylesheet from the DOM
+     */
+    detach() {
+        this.element.remove();
+        this.attatched = undefined;
+        return this;
+    }
+    insert(...instances) {
+        for (const instance of instances) {
+            if (instance instanceof OraCssStyle) {
+                this.styles.add(instance);
+            }
+            else if (instance instanceof OraCssAnimation) {
+                this.animations.add(instance);
+            }
+        }
+        return this;
+    }
+    build() {
+        const classes_string = Array.from(this.styles.list.values())
+            .map((instance) => instance.toString())
+            .join("\n");
+        const animations_string = Array.from(this.animations.list.values())
+            .map((instance) => instance.toString())
+            .join("\n");
+        const result = [classes_string, animations_string].join(" ");
+        this.element.innerHTML = result;
+        return this;
+    }
+    getUsageCount() {
+        function selectAndCount(e) {
+            return document.querySelectorAll(e.name).length;
+        }
+        return Array.from(this.styles.list.values())
+            .map(selectAndCount)
+            .reduce((accumulator, current) => accumulator + current, 0);
+    }
+    ref(run) {
+        run(this);
+        return this;
+    }
+}
+OraCss.ExtendStyle = class ExtendStyle {
+    static classname(name) {
+        return ` .${name}`;
+    }
+};
+
+var ora_css = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    OraCss: OraCss,
+    OraCssAnimation: OraCssAnimation,
+    OraCssClass: OraCssClass,
+    OraCssStyle: OraCssStyle
+});
+
+class StyledNodeManager {
+    constructor(id) {
+        this.id = id;
+        this.class = new OraCssStyle("." + this.getClassName(), {});
+    }
+    /**
+     * Returns the generated classname prefixed by vns_
+     * which stands for Virtual Node Style -
+     */
+    getClassName() {
+        return `vns_${this.id.toString(16)}`;
+    }
+}
+class StyledVNode extends VNode {
+    static getConstructor(ref) {
+        return ref.constructor;
+    }
+    static findOrCreate(c, styles) {
+        const is_new = StyledVNode.managers.get(c) == undefined;
+        const manager = this.getManager(c);
+        if (is_new) {
+            if (styles instanceof OraCssStyle) {
+                manager.class.data = styles.data;
+            }
+            else {
+                manager.class.data = styles;
+            }
+            this.sheet.styles.insert(manager.class);
+            this.sheet.build();
+        }
+        return manager.getClassName();
+    }
+    static connect(class_ref, styles) {
+        const c = this.getConstructor(class_ref);
+        if (styles == undefined) {
+            const manager = StyledVNode.managers.get(c);
+            if (manager != undefined) {
+                class_ref.class.add(manager.getClassName());
+            }
+        }
+        else {
+            const class_name = this.findOrCreate(c, styles);
+            class_ref.class.add(class_name);
+        }
+    }
+    static getManager(c) {
+        let manager = StyledVNode.managers.get(c);
+        if (manager == undefined) {
+            const id = ++StyledVNode.class_index;
+            manager = new StyledNodeManager(id);
+            StyledVNode.managers.set(c, manager);
+        }
+        return manager;
+    }
+    /** Destroys the class and it's relations for a vnode class */
+    static destroy(class_ref) {
+        const c = this.getConstructor(class_ref);
+        const manager = this.getManager(c);
+        const jss_class = this.sheet.styles.list.get(manager.class.name);
+        if (jss_class) {
+            this.sheet.styles.remove(jss_class);
+            this.sheet.build();
+        }
+        StyledVNode.managers.delete(c);
+    }
+    static init() {
+        this.sheet.attach();
+    }
+    static validStyles(styles) {
+        return styles;
+    }
+    constructor(element) {
+        super(element);
+        StyledVNode.connect(this, this.getConstructor().styles);
+    }
+    getConstructor() {
+        return this.constructor;
+    }
+}
+StyledVNode.managers = new Map();
+StyledVNode.class_index = 0;
+/** Should not be changed */
+StyledVNode.sheet = new OraCss();
+/** May be overridden by extending the class */
+StyledVNode.styles = {};
+class JCSSTracker {
+    constructor(instance, observer = new ObserverTracking()) {
+        this.instance = instance;
+        this.observer = observer;
+        this.instance.attach();
+        function callback() {
+            if (this.instance.getUsageCount() === 0) {
+                this.instance.detach();
+            }
+            else {
+                this.instance.attach();
+            }
+        }
+        this.callback = callback.bind(this);
+    }
+    enable() {
+        this.disable();
+        this.observer.events.off("any", this.callback);
+    }
+    disable() {
+        this.observer.events.off("any", this.callback);
+    }
+}
 
 class Fullscreen {
     static exitFullscreen() {
@@ -1992,4 +2388,4 @@ var experimental = /*#__PURE__*/Object.freeze({
     __proto__: null
 });
 
-export { experimental as Experimental, Fullscreen, JCSS, JCSSTracker, JssAnimation, JssClass, JssStyle, ObserverTracking, PictureApi as Picture, ProxyNode, StateTracking, StyledVNode, VNode, VNodeEventGroup, proxynode as default, generateProxyNode, newNode, qs, qsAll };
+export { experimental as Experimental, Fullscreen, OraCss as JCSS, JCSSTracker, OraCssAnimation as JssAnimation, OraCssStyle as JssClass, OraCssStyle as JssStyle, OraCssAnimation as OC_Animation, ObserverTracking, OraCss, OraCssStyle as OraCssClass, OraCssStyle, ora_css as OragoCss, PictureApi as Picture, ProxyNode, StateTracking, StyledVNode, VNFragment, VNode, VNodeEventGroup, proxynode as default, generateProxyNode, newNode, qs, qsAll, vn };

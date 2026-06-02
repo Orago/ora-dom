@@ -1,10 +1,10 @@
 import { ObserverTracking } from "./dom_observer.js";
 import type { VNodeElementName, VNodeExtractable } from "./interfaces.js";
-import { JCSS, JCSSOptions, JssClass, JssStyle, JSSStyleNames } from "./jss.js";
+import { OraCss, OraCssStyleOptions, OraCssStyle, OraCssStyleNames } from "./ora_css.js";
 import { VNode } from "./vnode.js";
 declare class StyledNodeManager {
     readonly id: number;
-    class: JssClass;
+    class: OraCssStyle;
     constructor(id: number);
     /**
      * Returns the generated classname prefixed by vns_
@@ -18,15 +18,15 @@ export declare abstract class StyledVNode<E extends HTMLElement = HTMLElement> e
     /** Should not be changed */
     private static sheet;
     /** May be overridden by extending the class */
-    static styles: Partial<Record<JSSStyleNames, string>> & {
+    static styles: Partial<Record<OraCssStyleNames, string>> & {
         _: unknown;
     };
     static getConstructor<T extends VNode>(ref: T): typeof VNode;
-    static findOrCreate(c: typeof VNode<any>, styles: JCSSOptions | JssStyle): string;
+    static findOrCreate(c: typeof VNode<any>, styles: OraCssStyleOptions | OraCssStyle): string;
     /**
      * Connects by finding or creating an instance
      */
-    static connect(class_ref: VNode, styles: JCSSOptions | JssStyle): void;
+    static connect(class_ref: VNode, styles: OraCssStyleOptions | OraCssStyle): void;
     /**
      * Connects if there is an existing instance
      */
@@ -35,7 +35,7 @@ export declare abstract class StyledVNode<E extends HTMLElement = HTMLElement> e
     /** Destroys the class and it's relations for a vnode class */
     static destroy(class_ref: VNode): void;
     static init(): void;
-    protected static validStyles<S extends Partial<Record<JSSStyleNames, string>>>(styles: S): S & {
+    protected static validStyles<S extends Partial<Record<OraCssStyleNames, string>>>(styles: S): S & {
         _: unknown;
     };
     constructor(element: VNodeElementName | VNodeExtractable);
@@ -45,7 +45,7 @@ export declare class JCSSTracker {
     private instance;
     observer: ObserverTracking;
     callback: () => void;
-    constructor(instance: JCSS, observer?: ObserverTracking);
+    constructor(instance: OraCss, observer?: ObserverTracking);
     enable(): void;
     disable(): void;
 }

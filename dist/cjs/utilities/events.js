@@ -1,10 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VNodeEvents = exports.VNodeEventGroup = void 0;
+exports.normalizeEvent = exports.VNodeEvents = exports.VNodeEventGroup = exports.VNODE_FLAG = exports.ReservedEvents = void 0;
 const lib_1 = require("@orago/lib");
 const submap_js_1 = require("../submap.js");
-const utilities_js_1 = require("../utilities.js");
+const vnode_utilities_js_1 = require("../vnode_utilities.js");
 const vnode_tracking_js_1 = require("./vnode_tracking.js");
+const VOID_EVENT = () => { };
+exports.ReservedEvents = {
+    // "dom-append": VOID_EVENT,
+    // "dom-remove": VOID_EVENT,
+    connected: VOID_EVENT,
+    disconnected: VOID_EVENT,
+};
+const VNODE_FLAG = (name) => `__vnode_${name}`;
+exports.VNODE_FLAG = VNODE_FLAG;
 class VNodeEventGroup {
     constructor(node) {
         this.node = node;
@@ -41,7 +50,9 @@ class VNodeEventCollection {
         }
         else {
             if (event == "keypress" || event == "keydown" || event == "keyup") {
-                utilities_js_1.P_VNodeUtil.attr(COLLECTION.element, { tabIndex: 0 });
+                vnode_utilities_js_1.VNodeUtilities.setAttributes(COLLECTION.element, {
+                    tabIndex: 0,
+                });
             }
             COLLECTION.listeners.add(event, callback);
             COLLECTION.element.addEventListener(event, callback);
@@ -96,10 +107,9 @@ class VNodeEventCollection {
     }
 }
 VNodeEventCollection.reserved_events = [
-    "dom-append",
-    "dom-remove",
+    ...Object.keys(exports.ReservedEvents),
 ];
-class VNodeEvents extends utilities_js_1.VNodeUtilityClass {
+class VNodeEvents extends vnode_utilities_js_1.VNodeUtilityClass {
     static getAlways(element) {
         const found = this.c_events.get(element);
         if (found != undefined) {
@@ -139,7 +149,7 @@ class VNodeEvents extends utilities_js_1.VNodeUtilityClass {
         return this.nest(...args);
     }
     on(event, callback) {
-        if (event == "dom-append" || event == "dom-remove") {
+        if (event == "connected" || event == "disconnected") {
             vnode_tracking_js_1.StateTracking.initNodeTracking(this.node);
         }
         VNodeEvents.on(this.element, event, callback);
@@ -156,6 +166,65 @@ class VNodeEvents extends utilities_js_1.VNodeUtilityClass {
     clear() {
         VNodeEvents.clear(this.element);
     }
+    useSignal(events, callback) {
+        const handler = () => callback(this);
+        const normalized = events.flatMap(normalizeEvent);
+        this.on("connected", () => {
+            for (const e of normalized) {
+                e.on(handler);
+            }
+        });
+        this.on("disconnected", () => {
+            for (const e of normalized) {
+                e.off(handler);
+            }
+        });
+        return this;
+    }
+    useStates(states, callback, immediate = false) {
+        const getValues = () => states.map((s) => s.get());
+        const handler = () => callback(getValues(), this);
+        if (immediate == true) {
+            handler();
+        }
+        this.on("connected", () => {
+            for (const state of states) {
+                state.change.on(handler);
+            }
+        });
+        this.on("disconnected", () => {
+            for (const state of states) {
+                state.change.off(handler);
+            }
+        });
+        return this;
+    }
 }
 exports.VNodeEvents = VNodeEvents;
 VNodeEvents.c_events = new WeakMap();
+function normalizeEvent(e) {
+    if (e instanceof lib_1.Signal) {
+        return [
+            {
+                on: (h) => e.on(h),
+                off: (h) => e.off(h),
+            },
+        ];
+    }
+    else if (e instanceof lib_1.Emitter) {
+        return [
+            {
+                on: (h) => e.on("*", h),
+                off: (h) => e.off("*", h),
+            },
+        ];
+    }
+    else {
+        const [emitter, names] = e;
+        return names.map((name) => ({
+            on: (h) => emitter.on(name, h),
+            off: (h) => emitter.off(name, h),
+        }));
+    }
+}
+exports.normalizeEvent = normalizeEvent;

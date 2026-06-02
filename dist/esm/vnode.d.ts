@@ -1,20 +1,23 @@
 import { Emitter, makeCallableClass } from "@orago/lib";
-import type { VNodeExtractable, VNodeAppendable, VNodeElementName, ResolveElement } from "./interfaces.js";
-import { VNodeExtractEl } from "./utilities.js";
+import type { VNodeExtractable, VNodeChildList, VNodeElementName, ResolveElement, VNodeWhereOptions } from "./interfaces.js";
+import { VNodeUtilities, VNodeExtractEl } from "./vnode_utilities.js";
 import { VNodeClasses, VNodeEvents, VNodeStyle } from "./utilities/vnode_extras.js";
 export declare class VNode<E extends HTMLElement = HTMLElement> {
+    static Utilities: typeof VNodeUtilities;
     static Util: {
         new (): {};
         qs(selector: string, element?: HTMLElement | Document): VNode | null;
         qsAll(selector: string, element?: HTMLElement | Document): VNode[];
+        where(options: VNodeWhereOptions, element?: HTMLElement | Document): VNode[];
         extractEl: typeof VNodeExtractEl;
         getChildren(extractable: VNodeExtractable): VNode[];
     };
     static indexing: Map<any, any>;
     /**
      * Replacement for 'newNode' on ProxyNode Utilities
+     * @deprecated
      */
-    static new: Record<VNodeElementName, VNode>;
+    static of: Record<VNodeElementName, VNode>;
     static getElement<T extends VNodeElementName | VNodeExtractable>(el: T): ResolveElement<T>;
     static from<T extends VNodeElementName | VNodeExtractable>(el: T): VNode<ResolveElement<T>>;
     /**
@@ -53,23 +56,24 @@ export declare class VNode<E extends HTMLElement = HTMLElement> {
      */
     events: ReturnType<typeof makeCallableClass<typeof VNodeEvents<this>>>;
     constructor(element: VNodeElementName | VNodeExtractable);
-    attr(attributes?: Record<string, string | number>): this;
+    ref(run: (arg0: this) => void): this;
+    use(plugins: ((node: VNode) => void)[]): void;
+    attr(attributes?: Partial<Record<string, string | number> & E>): this;
     swap(node: VNodeExtractable): this;
     id(value: string): this;
     id(value: undefined): string;
-    append(...objs: VNodeAppendable): this;
-    prepend(...objs: VNodeAppendable): this;
+    append(...objs: VNodeChildList): this;
+    prepend(...objs: VNodeChildList): this;
     appendTo(obj: VNodeExtractable | false, direction?: "append" | "prepend"): this;
     getBounds(): DOMRect;
     value(): any;
     value(value: string | number): this;
+    dataset(): Partial<Record<string, string>>;
+    dataset(record: "clear" | Partial<Record<string, string>>): this;
     focus(): this;
-    ref(run: (arg0: this) => void): this;
     remove(): this;
     setContent(...content: any[]): this;
-    /**
-     * Clears inner content
-     */
+    /** Clears inner content */
     clear(): this;
     inDom(parent?: HTMLElement): boolean;
     scroll(x?: number, y?: number): this;

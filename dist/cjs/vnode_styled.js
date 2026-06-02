@@ -2,12 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JCSSTracker = exports.StyledVNode = void 0;
 const dom_observer_js_1 = require("./dom_observer.js");
-const jss_js_1 = require("./jss.js");
+const ora_css_js_1 = require("./ora_css.js");
 const vnode_js_1 = require("./vnode.js");
 class StyledNodeManager {
     constructor(id) {
         this.id = id;
-        this.class = new jss_js_1.JssClass("." + this.getClassName(), {});
+        this.class = new ora_css_js_1.OraCssStyle("." + this.getClassName(), {});
     }
     /**
      * Returns the generated classname prefixed by vns_
@@ -25,13 +25,13 @@ class StyledVNode extends vnode_js_1.VNode {
         const is_new = StyledVNode.managers.get(c) == undefined;
         const manager = this.getManager(c);
         if (is_new) {
-            if (styles instanceof jss_js_1.JssStyle) {
+            if (styles instanceof ora_css_js_1.OraCssStyle) {
                 manager.class.data = styles.data;
             }
             else {
                 manager.class.data = styles;
             }
-            this.sheet.style.inject(manager.class);
+            this.sheet.styles.insert(manager.class);
             this.sheet.build();
         }
         return manager.getClassName();
@@ -62,15 +62,15 @@ class StyledVNode extends vnode_js_1.VNode {
     static destroy(class_ref) {
         const c = this.getConstructor(class_ref);
         const manager = this.getManager(c);
-        const jss_class = this.sheet.style.list.get(manager.class.name);
+        const jss_class = this.sheet.styles.list.get(manager.class.name);
         if (jss_class) {
-            this.sheet.style.remove(jss_class);
+            this.sheet.styles.remove(jss_class);
             this.sheet.build();
         }
         StyledVNode.managers.delete(c);
     }
     static init() {
-        this.sheet.insert();
+        this.sheet.attach();
     }
     static validStyles(styles) {
         return styles;
@@ -87,21 +87,20 @@ exports.StyledVNode = StyledVNode;
 StyledVNode.managers = new Map();
 StyledVNode.class_index = 0;
 /** Should not be changed */
-StyledVNode.sheet = new jss_js_1.JCSS();
+StyledVNode.sheet = new ora_css_js_1.OraCss();
 /** May be overridden by extending the class */
 StyledVNode.styles = {};
 class JCSSTracker {
-    constructor(instance, observer) {
+    constructor(instance, observer = new dom_observer_js_1.ObserverTracking()) {
         this.instance = instance;
-        this.instance = instance;
-        this.instance.insert();
-        this.observer = observer !== null && observer !== void 0 ? observer : new dom_observer_js_1.ObserverTracking();
+        this.observer = observer;
+        this.instance.attach();
         function callback() {
             if (this.instance.getUsageCount() === 0) {
-                this.instance.remove();
+                this.instance.detach();
             }
             else {
-                this.instance.insert();
+                this.instance.attach();
             }
         }
         this.callback = callback.bind(this);

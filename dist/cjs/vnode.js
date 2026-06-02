@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.VNode = void 0;
 const lib_1 = require("@orago/lib");
 const proxynode_js_1 = require("./proxynode.js");
-const utilities_js_1 = require("./utilities.js");
+const vnode_utilities_js_1 = require("./vnode_utilities.js");
 const vnode_extras_js_1 = require("./utilities/vnode_extras.js");
 class VNode {
     static getElement(el) {
@@ -44,8 +44,17 @@ class VNode {
         }
         VNode.events.emit("init", this);
     }
+    ref(run) {
+        run(this);
+        return this;
+    }
+    use(plugins) {
+        for (const plugin of plugins) {
+            plugin(this);
+        }
+    }
     attr(attributes = {}) {
-        utilities_js_1.P_VNodeUtil.attr(this.element, attributes);
+        vnode_utilities_js_1.VNodeUtilities.setAttributes(this.element, attributes);
         return this;
     }
     swap(node) {
@@ -64,22 +73,26 @@ class VNode {
         }
     }
     append(...objs) {
-        return utilities_js_1.P_VNodeUtil.injectItems(this, "append", objs);
+        vnode_utilities_js_1.VNodeUtilities.injectItems(this.element, "append", objs);
+        return this;
     }
     prepend(...objs) {
-        return utilities_js_1.P_VNodeUtil.injectItems(this, "prepend", objs);
+        vnode_utilities_js_1.VNodeUtilities.injectItems(this.element, "prepend", objs);
+        return this;
     }
     appendTo(obj, direction = "append") {
         if (obj == false) {
             return this;
         }
-        if (direction === "append") {
-            obj.append((0, utilities_js_1.VNodeExtractEl)(this.element));
-        }
         else {
-            obj.prepend((0, utilities_js_1.VNodeExtractEl)(this.element));
+            if (direction === "append") {
+                obj.append((0, vnode_utilities_js_1.VNodeExtractEl)(this.element));
+            }
+            else {
+                obj.prepend((0, vnode_utilities_js_1.VNodeExtractEl)(this.element));
+            }
+            return this;
         }
-        return this;
     }
     getBounds() {
         return this.element.getBoundingClientRect();
@@ -114,6 +127,27 @@ class VNode {
             }
         }
     }
+    dataset(record) {
+        if (record == undefined) {
+            return this.element.dataset;
+        }
+        if (record == "clear") {
+            return this.dataset(Object.fromEntries(Object.keys(this.element.dataset).map((key) => [
+                vnode_utilities_js_1.VNodeUtilities.formatAttributeName("camel", key),
+                undefined,
+            ])));
+        }
+        for (let [key, value] of Object.entries(record)) {
+            key = vnode_utilities_js_1.VNodeUtilities.formatAttributeName("camel", key);
+            if (value == undefined) {
+                delete this.element.dataset[key];
+            }
+            else {
+                this.element.dataset[key] = value;
+            }
+        }
+        return this;
+    }
     focus() {
         if (this.inDom()) {
             if (this.element instanceof HTMLElement) {
@@ -129,35 +163,18 @@ class VNode {
         }
         return this;
     }
-    ref(run) {
-        run(this);
-        return this;
-    }
     remove() {
         this.element.remove();
-        // if (VNode.send_events === true) {
-        // 	VNode.events.emit("remove", this);
-        // }
         return this;
     }
     setContent(...content) {
         return this.clear().append(...content);
     }
-    /**
-     * Clears inner content
-     */
+    /** Clears inner content */
     clear() {
         this.element.textContent = "";
         return this;
     }
-    // public setStyles(styles: StyleDeclarationWithProps) {
-    // 	this.style.update(styles);
-    // 	return this;
-    // }
-    // public setClasses(...classes: string[]) {
-    // 	this.class.set(...classes);
-    // 	return this;
-    // }
     inDom(parent = document.body) {
         return parent.contains(this.element);
     }
@@ -167,6 +184,7 @@ class VNode {
     }
 }
 exports.VNode = VNode;
+VNode.Utilities = vnode_utilities_js_1.VNodeUtilities;
 VNode.Util = (_a = class VNodeUtilExtend {
         static qs(selector, element = document) {
             const current = element.querySelector(selector);
@@ -177,18 +195,28 @@ VNode.Util = (_a = class VNodeUtilExtend {
                 return new VNode(current);
             });
         }
+        static where(options, element = document) {
+            const found = _a.qsAll(vnode_utilities_js_1.VNodeUtilities.whereString(options), element);
+            if (options.text != undefined) {
+                return vnode_utilities_js_1.VNodeUtilities.elementTextFind(options.text, found.map((e) => [e.element.textContent, e])).map((vec) => vec[1]);
+            }
+            else {
+                return found;
+            }
+        }
         static getChildren(extractable) {
-            const extracted = (0, utilities_js_1.VNodeExtractEl)(extractable);
+            const extracted = (0, vnode_utilities_js_1.VNodeExtractEl)(extractable);
             return Array.from(extracted.children).map((document_el) => new VNode(document_el));
         }
     },
-    _a.extractEl = utilities_js_1.VNodeExtractEl,
+    _a.extractEl = vnode_utilities_js_1.VNodeExtractEl,
     _a);
 VNode.indexing = new Map();
 /**
  * Replacement for 'newNode' on ProxyNode Utilities
+ * @deprecated
  */
-VNode.new = new Proxy({}, {
+VNode.of = new Proxy({}, {
     get(target, element_tag) {
         return new VNode(document.createElement(element_tag));
         // generateProxyNode(document.createElement(elementTag));
@@ -197,6 +225,6 @@ VNode.new = new Proxy({}, {
 /**
  * @deprecated Use VNode.Util.extractEl
  */
-VNode.extractEl = utilities_js_1.VNodeExtractEl;
+VNode.extractEl = vnode_utilities_js_1.VNodeExtractEl;
 VNode.send_events = false;
 VNode.events = new lib_1.Emitter();

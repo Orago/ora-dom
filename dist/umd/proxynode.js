@@ -7,16 +7,46 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
         if (v !== undefined) module.exports = v;
     }
     else if (typeof define === "function" && define.amd) {
-        define(["require", "exports", "@orago/lib/emitter", "./submap.js", "./utilities.js"], factory);
+        define(["require", "exports", "@orago/lib/emitter", "./submap.js", "./vnode_utilities.js"], factory);
     }
 })(function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.qsAll = exports.qs = exports.newNode = exports.generateProxyNode = exports.ProxyNode = exports.ProxynodeTracking = void 0;
+    exports.qsAll = exports.qs = exports.newNode = exports.generateProxyNode = exports.ProxyNode = exports.ProxynodeTracking = exports.PNodeUtil = void 0;
     const emitter_1 = __importDefault(require("@orago/lib/emitter"));
     const submap_js_1 = require("./submap.js");
-    const utilities_js_1 = require("./utilities.js");
+    const vnode_utilities_js_1 = require("./vnode_utilities.js");
+    class PNodeUtil {
+        static resetStyles(vnode, to_reset) {
+            const options = to_reset.length > 0 ? to_reset : ["content", "style", "class"];
+            for (const option of options) {
+                /* Clear inner content */
+                if (option === "content") {
+                    vnode.element.innerHTML = "";
+                }
+                else if (option === "style") {
+                    /* Clear styles */
+                    if (vnode.element instanceof HTMLElement) {
+                        const style_ref = vnode.element.style;
+                        for (let i = style_ref.length; i--;) {
+                            const name_string = style_ref[i];
+                            style_ref.removeProperty(name_string);
+                        }
+                    }
+                }
+                else if (option === "class") {
+                    /* Clear classes */
+                    vnode.element.className = "";
+                }
+            }
+            return vnode;
+        }
+    }
+    exports.PNodeUtil = PNodeUtil;
     let reserved_events = ["append", "remove"];
+    /**
+     * @deprecated
+     */
     class ProxynodeTracking {
         static inDom(element) {
             return this.tracked_in_dom.get(element) == true;
@@ -51,6 +81,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     }
     exports.ProxynodeTracking = ProxynodeTracking;
     ProxynodeTracking.tracked_in_dom = new WeakMap();
+    /**
+     * @deprecated
+     */
     class ProxyNode {
         static getEvents(element) {
             const existing = ProxyNode.weak_events.get(element);
@@ -204,7 +237,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
          * @deprecated - Possibly removed in the next version
          */
         reset(...to_reset) {
-            return utilities_js_1.PNodeUtil.resetStyles(this, to_reset);
+            return PNodeUtil.resetStyles(this, to_reset);
         }
         //#endregion //* Default Utils *//
         //#region //* Classes *//
@@ -471,7 +504,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     // private static qs = qs;
     // private static qsAll = qsAll;
     ProxyNode.tracking = new ProxynodeTracking();
-    ProxyNode.extractEl = utilities_js_1.VNodeExtractEl;
+    ProxyNode.extractEl = vnode_utilities_js_1.VNodeExtractEl;
     function generateProxyNode(el) {
         return new ProxyNode(el);
     }

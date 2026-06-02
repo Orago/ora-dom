@@ -1,7 +1,8 @@
 import { Emitter } from "@orago/lib";
 import { SubMap } from "../submap.js";
-import { P_VNodeUtil, VNodeUtilityClass } from "../utilities.js";
-import { StateTracking } from "./vnode_tracking.js";
+import { VNodeUtilities, VNodeUtilityClass, } from "../vnode_utilities.js";
+import { SizeTracking, StateTracking } from "./vnode_tracking.js";
+import { ReservedEvents } from "./events.js";
 class VNodeAnimation {
     constructor(node, styles, options) {
         this.node = node;
@@ -13,7 +14,7 @@ class VNodeAnimation {
         if (typeof options === "object") {
             this.animation.addEventListener("finish", () => {
                 if (options.save === true) {
-                    P_VNodeUtil.setStyles(this.node.element, styles[end_index]);
+                    VNodeUtilities.setStyles(this.node.element, styles[end_index]);
                 }
             });
         }
@@ -33,11 +34,11 @@ export class VNodeStyle extends VNodeUtilityClass {
     // 	return this.update(...args).node;
     // }
     update(styles = {}) {
-        P_VNodeUtil.setStyles(this.node.element, styles);
+        VNodeUtilities.setStyles(this.node.element, styles);
         return this;
     }
     remove(...styles) {
-        P_VNodeUtil.removeStyles(this.node.element, styles);
+        VNodeUtilities.removeStyles(this.node.element, styles);
         return this;
     }
     animate(styles, options) {
@@ -109,6 +110,12 @@ export class VNodeClasses extends VNodeUtilityClass {
         return this.toggle(class_name, status);
     }
 }
+const dom_tracking_events = [
+    // "dom-append",
+    // "dom-remove",
+    "connected",
+    "disconnected",
+];
 class VNodeEventCollection {
     static isReserved(event) {
         return this.reserved_events.includes(event);
@@ -124,7 +131,9 @@ class VNodeEventCollection {
         }
         else {
             if (event == "keypress" || event == "keydown" || event == "keyup") {
-                P_VNodeUtil.attr(COLLECTION.element, { tabIndex: 0 });
+                VNodeUtilities.setAttributes(COLLECTION.element, {
+                    tabIndex: 0,
+                });
             }
             COLLECTION.listeners.add(event, callback);
             COLLECTION.element.addEventListener(event, callback);
@@ -179,8 +188,9 @@ class VNodeEventCollection {
     }
 }
 VNodeEventCollection.reserved_events = [
-    "dom-append",
-    "dom-remove",
+    ...Object.keys(ReservedEvents),
+    // "dom-append",
+    // "dom-remove",
 ];
 export class VNodeEvents extends VNodeUtilityClass {
     static getAlways(element) {
@@ -222,8 +232,11 @@ export class VNodeEvents extends VNodeUtilityClass {
         return this.nest(...args);
     }
     on(event, callback) {
-        if (event == "dom-append" || event == "dom-remove") {
+        if (event == "connected" || event == "disconnected") {
             StateTracking.initNodeTracking(this.node);
+        }
+        if (event == "resize") {
+            SizeTracking.initNodeTracking(this.node);
         }
         VNodeEvents.on(this.element, event, callback);
         return this;

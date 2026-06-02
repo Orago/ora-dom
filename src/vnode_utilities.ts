@@ -2,6 +2,7 @@ import type {
 	VNodeChildList,
 	VNodeExtractable,
 	VNodeStyleDeclarationWithProps,
+	VNodeWhereOptions,
 } from "./interfaces.js";
 import type { ProxyNode } from "./proxynode.js";
 import type { VNode } from "./vnode.js";
@@ -71,10 +72,10 @@ export class VNodeUtilities {
 		attributes: Record<string, string | number | undefined> = {}
 	): void {
 		if (typeof attributes == "object" && attributes !== null) {
-			for (const [key, value] of Object.entries(attributes)) {
-				if (value != null) {
-					element.setAttribute(key, String(value));
-				}
+			for (let [key, value] of Object.entries(attributes)) {
+				if (value == null) continue;
+				key = VNodeUtilities.formatAttributeName("kebab", key);
+				element.setAttribute(key, String(value));
 			}
 		}
 	}
@@ -114,10 +115,71 @@ export class VNodeUtilities {
 			}
 		}
 	}
+
+	public static formatAttributeName(as: "kebab" | "camel", text: string) {
+		switch (as) {
+			case "camel":
+				return text
+					.split("-")
+					.map(
+						(e, i) =>
+							(i > 0
+								? e.slice(0, 1).toUpperCase()
+								: e.slice(0, 1).toLowerCase()) +
+							e.slice(1).toLowerCase()
+					)
+					.join("");
+			case "kebab":
+				return text
+					.replace(/([A-Z]{2,})/g, (match) =>
+						match.split("").join("-")
+					)
+					.replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+					.toLowerCase();
+		}
+	}
+
+		public static elementTextFind(
+				options: Exclude<VNodeWhereOptions["text"], undefined>,
+				dict: [string, any][]
+			) {
+				return dict.filter(([text]) => {
+					if (options.lowercase == true) {
+						text = String(text).toLowerCase();
+					}
+					if (options.uppercase == true) {
+						text = String(text).toUpperCase();
+					}
+	
+					if (typeof options.find == "function") {
+						return options.find(text) == true;
+					} else {
+						return text === options.find;
+					}
+				});
+			}
+	
+
+	public static whereString(options: VNodeWhereOptions): string {
+			const class_str = options.classes?.map((e) => "." + e)?.join("");
+			const attr_str = Object.entries(options.attributes ?? {}).map(
+				([k, v]) => {
+					k = VNodeUtilities.formatAttributeName("kebab", k);
+					return `[${k}='${v}']`;
+				}
+			);
+			const data_str = Object.entries(options.data ?? {}).map(
+				([k, v]) => {
+					k = VNodeUtilities.formatAttributeName("kebab", k);
+					return `[data-${k}='${v}']`;
+				}
+			);
+			return `${options.id ?? ""}${class_str}${attr_str}${data_str}`;
+		}
+	
 }
 export class VNodeUtilityClass<T extends VNode = VNode> {
-	constructor(public node: T) {
-	}
+	constructor(public node: T) {}
 
 	public nest(run: (arg0: this) => void): this["node"] {
 		run(this);
@@ -133,34 +195,4 @@ export function VNodeExtractEl(node: VNodeExtractable): HTMLElement {
 	return node;
 }
 
-export class PNodeUtil {
-	public static resetStyles<T extends ProxyNode>(
-		vnode: T,
-		to_reset: ("content" | "style" | "class")[]
-	): T {
-		const options =
-			to_reset.length > 0 ? to_reset : ["content", "style", "class"];
 
-		for (const option of options) {
-			/* Clear inner content */
-			if (option === "content") {
-				vnode.element.innerHTML = "";
-			} else if (option === "style") {
-				/* Clear styles */
-				if (vnode.element instanceof HTMLElement) {
-					const style_ref = vnode.element.style;
-
-					for (let i = style_ref.length; i--; ) {
-						const name_string = style_ref[i];
-						style_ref.removeProperty(name_string);
-					}
-				}
-			} else if (option === "class") {
-				/* Clear classes */
-				vnode.element.className = "";
-			}
-		}
-
-		return vnode;
-	}
-}

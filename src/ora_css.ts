@@ -7,8 +7,21 @@ function camelToKebab(str: string): string {
 export type OraCssStyleNames = keyof CSSStyleDeclaration | `--${string}`;
 export type StyleOptions = Partial<Record<OraCssStyleNames, string>>;
 
+export interface OraCssMediaQueryOptions {
+	min_width?: `${number}${"px" | "em"}` | (string & {});
+	max_width?: `${number}${"px" | "em"}` | (string & {});
+	min_height?: `${number}${"px" | "em"}` | (string & {});
+	max_height?: `${number}${"px" | "em"}` | (string & {});
+}
+
+type OraCssExtendOption = Record<`&:${string}` | string, StyleOptions>;
+type OraCssMediaOption = {
+	if: OraCssMediaQueryOptions;
+	styles: StyleOptions & { extend?: OraCssExtendOption };
+};
 export type OraCssStyleOptions = StyleOptions & {
-	extend?: Record<`:${string}` | string, StyleOptions>;
+	extend?: OraCssExtendOption;
+	media?: OraCssMediaOption[];
 };
 export type AnimationPosition = `${number}%` | "from" | "to";
 
@@ -18,6 +31,59 @@ export type OraCssAnimationOptions = [
 ][];
 
 export class OraCssStyle {
+	static Media = class OraCssMedia {
+		static createString(
+			options: OraCssMediaQueryOptions,
+			styles: [name: string, options: OraCssMediaOption["styles"]][],
+			indent: number = 0
+		): string {
+			let indent_string = "\t".repeat(indent);
+			let parts: string[] = [];
+
+			if (options.min_width) {
+				parts.push(`(min-width: ${options.min_width})`);
+			}
+			if (options.max_width) {
+				parts.push(`(max-width: ${options.max_width})`);
+			}
+			if (options.min_height) {
+				parts.push(`(min-height: ${options.min_height})`);
+			}
+			if (options.max_height) {
+				parts.push(`(max-height: ${options.max_height})`);
+			}
+			const parts_string = parts.join(" and ");
+			const inner_styles = styles
+				.map(([name, options]) => {
+					return OraCssStyle.toString(name, options, indent + 1);
+				})
+				.join("\n");
+
+			return `@media ${parts_string} {${inner_styles}\n${indent_string}}`;
+		}
+
+		static toString(
+			style_name: string,
+			options: OraCssMediaOption[],
+			indent: number = 0
+		) {
+			let s: string[] = [];
+
+			for (const m of options) {
+				const { ...other_styles } = m.styles;
+				const str = OraCssStyle.Media.createString(
+					m.if,
+					[[style_name, other_styles]],
+					indent
+				);
+
+				s.push(str);
+			}
+
+			return s.join("🐱🐱🐱");
+		}
+	};
+
 	static parseContents(data: Partial<Record<OraCssStyleNames, string>>) {
 		return Object.entries(data).map(
 			([name, value]) => `${camelToKebab(name)}: ${value}`
@@ -29,19 +95,48 @@ export class OraCssStyle {
 		return `${name} { ${formatted_styles} }`;
 	}
 
-	static toString(name: string, data: OraCssStyleOptions) {
-		const { extend, ...other_data } = data;
-		let styles: string[] = [];
-
-		styles.push(OraCssStyle.resolve(name, other_data));
-
-		if (extend != undefined) {
-			for (const [key, value] of Object.entries(extend)) {
-				styles.push(OraCssStyle.resolve(name + key, value));
+	static parseExtend(style_name: string, extend: OraCssExtendOption) {
+		return Object.entries(extend).map(([key, value]) => {
+			let style_name_out: string;
+			if (key.includes("&")) {
+				if (key.startsWith("&")) {
+					key = key.slice(1);
+				}
+				style_name_out = style_name + key.replace(/&/g, style_name);
+			} else {
+				style_name_out = style_name + key;
 			}
+			return OraCssStyle.resolve(style_name_out, value);
+		});
+	}
+
+	static toString(
+		style_name: string,
+		data: OraCssStyleOptions,
+		indent: number = 0
+	) {
+		const { extend, media: media_list, ...other_styles } = data;
+		const indent_string = "\t".repeat(indent);
+		const line_seperator = `\n${indent_string}`;
+		let strings: string[] = [];
+		strings.push(OraCssStyle.resolve(style_name, other_styles));
+
+		if (media_list != undefined) {
+			const k = OraCssStyle.Media.toString(
+				style_name,
+				media_list,
+				indent
+			);
+			strings.push(k);
+		}
+		if (extend != undefined) {
+			strings.push(...OraCssStyle.parseExtend(style_name, extend));
 		}
 
-		return styles.join(" \n");
+		return (
+			(indent > 0 ? line_seperator : "") +
+			strings.join(" " + line_seperator)
+		);
 	}
 
 	constructor(public name: string, public data: OraCssStyleOptions) {}

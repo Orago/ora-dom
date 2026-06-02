@@ -3,8 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.VNodeEvents = exports.VNodeClasses = exports.VNodeStyle = void 0;
 const lib_1 = require("@orago/lib");
 const submap_js_1 = require("../submap.js");
-const utilities_js_1 = require("../utilities.js");
+const vnode_utilities_js_1 = require("../vnode_utilities.js");
 const vnode_tracking_js_1 = require("./vnode_tracking.js");
+const events_js_1 = require("./events.js");
 class VNodeAnimation {
     constructor(node, styles, options) {
         this.node = node;
@@ -16,13 +17,13 @@ class VNodeAnimation {
         if (typeof options === "object") {
             this.animation.addEventListener("finish", () => {
                 if (options.save === true) {
-                    utilities_js_1.P_VNodeUtil.setStyles(this.node.element, styles[end_index]);
+                    vnode_utilities_js_1.VNodeUtilities.setStyles(this.node.element, styles[end_index]);
                 }
             });
         }
     }
 }
-class VNodeStyle extends utilities_js_1.VNodeUtilityClass {
+class VNodeStyle extends vnode_utilities_js_1.VNodeUtilityClass {
     call(value = {}) {
         if (typeof value == "object") {
             return this.update(value).node;
@@ -36,11 +37,11 @@ class VNodeStyle extends utilities_js_1.VNodeUtilityClass {
     // 	return this.update(...args).node;
     // }
     update(styles = {}) {
-        utilities_js_1.P_VNodeUtil.setStyles(this.node.element, styles);
+        vnode_utilities_js_1.VNodeUtilities.setStyles(this.node.element, styles);
         return this;
     }
     remove(...styles) {
-        utilities_js_1.P_VNodeUtil.removeStyles(this.node.element, styles);
+        vnode_utilities_js_1.VNodeUtilities.removeStyles(this.node.element, styles);
         return this;
     }
     animate(styles, options) {
@@ -48,7 +49,7 @@ class VNodeStyle extends utilities_js_1.VNodeUtilityClass {
     }
 }
 exports.VNodeStyle = VNodeStyle;
-class VNodeClasses extends utilities_js_1.VNodeUtilityClass {
+class VNodeClasses extends vnode_utilities_js_1.VNodeUtilityClass {
     static addClasses(element, args) {
         for (const arg of args) {
             if (arg.includes(" ")) {
@@ -114,6 +115,12 @@ class VNodeClasses extends utilities_js_1.VNodeUtilityClass {
     }
 }
 exports.VNodeClasses = VNodeClasses;
+const dom_tracking_events = [
+    // "dom-append",
+    // "dom-remove",
+    "connected",
+    "disconnected",
+];
 class VNodeEventCollection {
     static isReserved(event) {
         return this.reserved_events.includes(event);
@@ -129,7 +136,9 @@ class VNodeEventCollection {
         }
         else {
             if (event == "keypress" || event == "keydown" || event == "keyup") {
-                utilities_js_1.P_VNodeUtil.attr(COLLECTION.element, { tabIndex: 0 });
+                vnode_utilities_js_1.VNodeUtilities.setAttributes(COLLECTION.element, {
+                    tabIndex: 0,
+                });
             }
             COLLECTION.listeners.add(event, callback);
             COLLECTION.element.addEventListener(event, callback);
@@ -184,10 +193,11 @@ class VNodeEventCollection {
     }
 }
 VNodeEventCollection.reserved_events = [
-    "dom-append",
-    "dom-remove",
+    ...Object.keys(events_js_1.ReservedEvents),
+    // "dom-append",
+    // "dom-remove",
 ];
-class VNodeEvents extends utilities_js_1.VNodeUtilityClass {
+class VNodeEvents extends vnode_utilities_js_1.VNodeUtilityClass {
     static getAlways(element) {
         const found = this.c_events.get(element);
         if (found != undefined) {
@@ -227,8 +237,11 @@ class VNodeEvents extends utilities_js_1.VNodeUtilityClass {
         return this.nest(...args);
     }
     on(event, callback) {
-        if (event == "dom-append" || event == "dom-remove") {
+        if (event == "connected" || event == "disconnected") {
             vnode_tracking_js_1.StateTracking.initNodeTracking(this.node);
+        }
+        if (event == "resize") {
+            vnode_tracking_js_1.SizeTracking.initNodeTracking(this.node);
         }
         VNodeEvents.on(this.element, event, callback);
         return this;

@@ -1,6 +1,6 @@
 import Emitter from "@orago/lib/emitter";
 import type { DomAnimationOptionsOld, StyleDeclaration, StyleDeclarationWithProps, VNodeListeners } from "./interfaces.js";
-import { VNodeExtractEl } from "./utilities.js";
+import { VNodeExtractEl } from "./vnode_utilities.js";
 import { VNode } from "./vnode.js";
 type PN_Extractable = ProxyNode | VNode | HTMLElement;
 type ProxyNodeEvents = {
@@ -11,6 +11,12 @@ type ProxyNodeEvents = {
  * Record<element_tag: string, proxy_node: ProxyNode>;
  */
 type NewNode = Record<string, ProxyNode>;
+export declare class PNodeUtil {
+    static resetStyles<T extends ProxyNode>(vnode: T, to_reset: ("content" | "style" | "class")[]): T;
+}
+/**
+ * @deprecated
+ */
 export declare class ProxynodeTracking {
     static inDom(element: HTMLElement): boolean;
     static handle(element: HTMLElement): void;
@@ -19,6 +25,9 @@ export declare class ProxynodeTracking {
     observer: MutationObserver;
     constructor();
 }
+/**
+ * @deprecated
+ */
 export declare class ProxyNode {
     private static stored_listeners;
     private static weak_events;

@@ -1,10 +1,10 @@
 import { ObserverTracking } from "./dom_observer.js";
-import { JCSS, JssClass, JssStyle } from "./jss.js";
+import { OraCss, OraCssStyle, } from "./ora_css.js";
 import { VNode } from "./vnode.js";
 class StyledNodeManager {
     constructor(id) {
         this.id = id;
-        this.class = new JssClass("." + this.getClassName(), {});
+        this.class = new OraCssStyle("." + this.getClassName(), {});
     }
     /**
      * Returns the generated classname prefixed by vns_
@@ -22,13 +22,13 @@ export class StyledVNode extends VNode {
         const is_new = StyledVNode.managers.get(c) == undefined;
         const manager = this.getManager(c);
         if (is_new) {
-            if (styles instanceof JssStyle) {
+            if (styles instanceof OraCssStyle) {
                 manager.class.data = styles.data;
             }
             else {
                 manager.class.data = styles;
             }
-            this.sheet.style.inject(manager.class);
+            this.sheet.styles.insert(manager.class);
             this.sheet.build();
         }
         return manager.getClassName();
@@ -59,15 +59,15 @@ export class StyledVNode extends VNode {
     static destroy(class_ref) {
         const c = this.getConstructor(class_ref);
         const manager = this.getManager(c);
-        const jss_class = this.sheet.style.list.get(manager.class.name);
+        const jss_class = this.sheet.styles.list.get(manager.class.name);
         if (jss_class) {
-            this.sheet.style.remove(jss_class);
+            this.sheet.styles.remove(jss_class);
             this.sheet.build();
         }
         StyledVNode.managers.delete(c);
     }
     static init() {
-        this.sheet.insert();
+        this.sheet.attach();
     }
     static validStyles(styles) {
         return styles;
@@ -83,21 +83,20 @@ export class StyledVNode extends VNode {
 StyledVNode.managers = new Map();
 StyledVNode.class_index = 0;
 /** Should not be changed */
-StyledVNode.sheet = new JCSS();
+StyledVNode.sheet = new OraCss();
 /** May be overridden by extending the class */
 StyledVNode.styles = {};
 export class JCSSTracker {
-    constructor(instance, observer) {
+    constructor(instance, observer = new ObserverTracking()) {
         this.instance = instance;
-        this.instance = instance;
-        this.instance.insert();
-        this.observer = observer !== null && observer !== void 0 ? observer : new ObserverTracking();
+        this.observer = observer;
+        this.instance.attach();
         function callback() {
             if (this.instance.getUsageCount() === 0) {
-                this.instance.remove();
+                this.instance.detach();
             }
             else {
-                this.instance.insert();
+                this.instance.attach();
             }
         }
         this.callback = callback.bind(this);

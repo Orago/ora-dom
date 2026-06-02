@@ -9,6 +9,7 @@ function getAllRemovedNodes(node: Node): Node[] {
 	});
 	return nodes;
 }
+
 class VNodeStateObserver {
 	private inDom(element: HTMLElement) {
 		return this.tracked_in_dom.get(element) == true;

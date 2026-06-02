@@ -1,8 +1,9 @@
 import { Emitter } from "@orago/lib";
 import type { StyleDeclaration, VNodeAnimationOptions, VNodeStyleDeclarationWithProps } from "../interfaces.js";
 import { SubMap } from "../submap.js";
-import { VNodeUtilityClass } from "../utilities.js";
+import { VNodeUtilityClass } from "../vnode_utilities.js";
 import type { VNode } from "../vnode.js";
+import { VNodeEventKeys, VNodeEventsT } from "./events.js";
 declare class VNodeAnimation<T extends VNode> {
     private node;
     animation: Animation;
@@ -30,11 +31,6 @@ export declare class VNodeClasses<T extends VNode> extends VNodeUtilityClass<T> 
      */
     toggleClass(class_name: string, status?: boolean): this;
 }
-type VNodeEventsT = {
-    "dom-append": () => void;
-    "dom-remove": () => void;
-};
-type VNodeEventKeys = (keyof HTMLElementEventMap | keyof VNodeEventsT) & (string | {});
 declare class VNodeEventCollection {
     private static reserved_events;
     private static isReserved;

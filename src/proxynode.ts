@@ -7,7 +7,7 @@ import type {
 } from "./interfaces.js";
 
 import { SubMap } from "./submap.js";
-import { PNodeUtil, VNodeExtractEl } from "./vnode_utilities.js";
+import { VNodeExtractEl } from "./vnode_utilities.js";
 import { VNode } from "./vnode.js";
 
 // export type {
@@ -29,6 +29,38 @@ type ReservedEvents = "append" | "remove";
  * Record<element_tag: string, proxy_node: ProxyNode>;
  */
 type NewNode = Record<string, ProxyNode>;
+
+export class PNodeUtil {
+	public static resetStyles<T extends ProxyNode>(
+		vnode: T,
+		to_reset: ("content" | "style" | "class")[]
+	): T {
+		const options =
+			to_reset.length > 0 ? to_reset : ["content", "style", "class"];
+
+		for (const option of options) {
+			/* Clear inner content */
+			if (option === "content") {
+				vnode.element.innerHTML = "";
+			} else if (option === "style") {
+				/* Clear styles */
+				if (vnode.element instanceof HTMLElement) {
+					const style_ref = vnode.element.style;
+
+					for (let i = style_ref.length; i--; ) {
+						const name_string = style_ref[i];
+						style_ref.removeProperty(name_string);
+					}
+				}
+			} else if (option === "class") {
+				/* Clear classes */
+				vnode.element.className = "";
+			}
+		}
+
+		return vnode;
+	}
+}
 
 let reserved_events: (ReservedEvents | (string & {}))[] = ["append", "remove"];
 /**

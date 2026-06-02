@@ -1,7 +1,36 @@
 import Emitter from "@orago/lib/emitter";
 import { SubMap } from "./submap.js";
-import { PNodeUtil, VNodeExtractEl } from "./utilities.js";
+import { VNodeExtractEl } from "./vnode_utilities.js";
+export class PNodeUtil {
+    static resetStyles(vnode, to_reset) {
+        const options = to_reset.length > 0 ? to_reset : ["content", "style", "class"];
+        for (const option of options) {
+            /* Clear inner content */
+            if (option === "content") {
+                vnode.element.innerHTML = "";
+            }
+            else if (option === "style") {
+                /* Clear styles */
+                if (vnode.element instanceof HTMLElement) {
+                    const style_ref = vnode.element.style;
+                    for (let i = style_ref.length; i--;) {
+                        const name_string = style_ref[i];
+                        style_ref.removeProperty(name_string);
+                    }
+                }
+            }
+            else if (option === "class") {
+                /* Clear classes */
+                vnode.element.className = "";
+            }
+        }
+        return vnode;
+    }
+}
 let reserved_events = ["append", "remove"];
+/**
+ * @deprecated
+ */
 export class ProxynodeTracking {
     static inDom(element) {
         return this.tracked_in_dom.get(element) == true;
@@ -35,6 +64,9 @@ export class ProxynodeTracking {
     }
 }
 ProxynodeTracking.tracked_in_dom = new WeakMap();
+/**
+ * @deprecated
+ */
 export class ProxyNode {
     static getEvents(element) {
         const existing = ProxyNode.weak_events.get(element);

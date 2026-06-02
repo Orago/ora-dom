@@ -1,5 +1,6 @@
 export { VNode } from "./vnode.js";
 export { vn, VNFragment } from "./vnode_functional.js";
+export type { VNProperties, VNodeTagged } from "./vnode_functional.js";
 export { StyledVNode } from "./vnode_styled.js";
 export { StateTracking } from "./utilities/vnode_tracking.js";
 export { VNodeEventGroup } from "./utilities/events.js";

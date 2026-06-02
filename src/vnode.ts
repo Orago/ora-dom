@@ -4,6 +4,7 @@ import type {
 	VNodeChildList,
 	VNodeElementName,
 	ResolveElement,
+	VNodeWhereOptions,
 } from "./interfaces.js";
 import { ProxyNode } from "./proxynode.js";
 import { VNodeUtilities, VNodeExtractEl } from "./vnode_utilities.js";
@@ -20,6 +21,7 @@ type StateValues<T extends readonly State<any>[]> = {
 type EmitterValue<S> = S extends Emitter<infer T> ? T : never;
 
 export class VNode<E extends HTMLElement = HTMLElement> {
+	public static Utilities = VNodeUtilities;
 	public static Util = class VNodeUtilExtend {
 		public static qs(
 			selector: string,
@@ -39,6 +41,25 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 					return new VNode(current as HTMLElement);
 				}
 			);
+		}
+
+		public static where(
+			options: VNodeWhereOptions,
+			element: HTMLElement | Document = document
+		): VNode[] {
+			const found = VNodeUtilExtend.qsAll(
+				VNodeUtilities.whereString(options),
+				element
+			);
+
+			if (options.text != undefined) {
+				return VNodeUtilities.elementTextFind(
+					options.text,
+					found.map((e) => [e.element.textContent, e])
+				).map((vec) => vec[1]);
+			} else {
+				return found;
+			}
 		}
 
 		public static extractEl = VNodeExtractEl;
@@ -176,6 +197,17 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 		VNode.events.emit("init", this as any);
 	}
 
+	public ref(run: (arg0: this) => void): this {
+		run(this);
+		return this;
+	}
+
+	public use(plugins: ((node: VNode) => void)[]) {
+		for (const plugin of plugins) {
+			plugin(this);
+		}
+	}
+
 	public attr(
 		attributes: Partial<Record<string, string | number> & E> = {}
 	): this {
@@ -276,14 +308,15 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 			return this.dataset(
 				Object.fromEntries(
 					Object.keys(this.element.dataset).map((key) => [
-						key,
+						VNodeUtilities.formatAttributeName("camel", key),
 						undefined,
 					])
 				)
 			);
 		}
 
-		for (const [key, value] of Object.entries(record)) {
+		for (let [key, value] of Object.entries(record)) {
+			key = VNodeUtilities.formatAttributeName("camel", key);
 			if (value == undefined) {
 				delete this.element.dataset[key];
 			} else {
@@ -306,11 +339,6 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 			}, 0);
 		}
 
-		return this;
-	}
-
-	public ref(run: (arg0: this) => void): this {
-		run(this);
 		return this;
 	}
 

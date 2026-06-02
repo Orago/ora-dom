@@ -1,12 +1,17 @@
-import { Emitter } from "@orago/lib";
+import { Emitter, Signal, State } from "@orago/lib";
 import { SubMap } from "../submap.js";
-import { VNodeUtilityClass } from "../utilities.js";
+import { VNodeUtilityClass } from "../vnode_utilities.js";
 import type { VNode } from "../vnode.js";
-type VNodeEventsT = {
-    "dom-append": () => void;
-    "dom-remove": () => void;
+export type VNodeEventsT = typeof ReservedEvents;
+export type VNodeEventKeys = (keyof HTMLElementEventMap | keyof VNodeEventsT) | (string & {});
+type StateValues<T extends readonly State<any>[]> = {
+    [K in keyof T]: ReturnType<T[K]["get"]>;
 };
-type VNodeEventKeys = (keyof HTMLElementEventMap | keyof VNodeEventsT) & (string | {});
+export declare const ReservedEvents: {
+    connected: () => void;
+    disconnected: () => void;
+};
+export declare const VNODE_FLAG: (name: string) => string;
 export declare class VNodeEventGroup {
     private node;
     map: Map<keyof HTMLElementEventMap, Function>;
@@ -43,5 +48,11 @@ export declare class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
     off(event: VNodeEventKeys, callback?: Function): this;
     once(event: VNodeEventKeys, callback: Function): this;
     clear(): void;
+    useSignal<const T extends readonly ([Emitter, string[]] | Signal<any> | Emitter)[]>(events: T, callback: (node: this) => void): this;
+    useStates<const T extends readonly State<any>[]>(states: T, callback: (values: StateValues<T>, node: this) => void, immediate?: boolean): this;
 }
+export declare function normalizeEvent(e: Signal<any> | Emitter | [Emitter, string[]]): {
+    on(handler: () => void): void;
+    off(handler: () => void): void;
+}[];
 export {};
