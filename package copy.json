@@ -3,7 +3,7 @@
 	"version": "0.0.50",
 	"description": "Orago's Game library",
 	"type": "module",
-	"main": "./dist/esm/index.js",
+	"main": "dist/esm/index.js",
 	"types": "./dist/types/index.d.ts",
 	"scripts": {
 		"build": "npm run build:clean && npm run build-types && npm run build-cjs & npm run build-esm & npm run build-browser-esm ",
@@ -17,9 +17,11 @@
 	},
 	"exports": {
 		".": {
-			"types": "./dist/types/index.d.ts",
-			"import": "./dist/esm/index.js",
-			"require": "./dist/cjs/index.js"
+			"default": {
+				"types": "./dist/types/index.d.ts",
+				"import": "./dist/esm/index.js",
+				"require": "./dist/cjs/index.js"
+			}
 		},
 		"./*": {
 			"types": "./dist/types/*.d.ts",
@@ -27,21 +29,9 @@
 			"require": "./dist/cjs/*.js"
 		},
 		"./jsx-runtime": {
-			"types": "./dist/types/jsx-runtime.d.ts",
-			"import": "./dist/esm/jsx-runtime.js",
-			"require": "./dist/cjs/jsx-runtime.js"
-		},
-		"./jsx-dev-runtime": {
-			"types": "./dist/types/jsx-runtime.d.ts",
-			"import": "./dist/esm/jsx-runtime.js",
-			"require": "./dist/cjs/jsx-runtime.js"
-		}
-	},
-	"typesVersions": {
-		"*": {
-			"*": [
-				"./src/*"
-			]
+			"types": "./dist/types/jsx.d.ts",
+			"import": "./dist/esm/jsx.js",
+			"require": "./dist/cjs/jsx.js"
 		}
 	},
 	"author": "Orago",

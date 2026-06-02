@@ -13,14 +13,22 @@ export type VNProperties<T extends keyof HTMLElementTagNameMap> = {
 	properties?: Partial<HTMLElementTagNameMap[T]>;
 	style?: Partial<CSSStyleDeclaration>;
 	dataset?: Record<string, string>;
-	class?: string[];
+	class?: string[] | string;
 	on?: {
 		[K in keyof HTMLElementEventMap]?: (
 			this: VNodeTagged<T>,
 			ev: HTMLElementEventMap[K]
 		) => any;
 	};
+	// `on:${string}`: any;
 	ref?: (el: VNodeTagged<T>) => void;
+	use?: ((node: VNodeTagged<T>) => void)[];
+	children?: any;
+} & {
+	[K in keyof HTMLElementEventMap as `on:${K}`]?: (
+		this: VNodeTagged<T>,
+		ev: HTMLElementEventMap[K]
+	) => any;
 };
 
 /**
@@ -53,7 +61,11 @@ export function vn<T extends keyof HTMLElementTagNameMap>(
 		}
 
 		if (props.class) {
-			node.class.add(...props.class);
+			if (typeof props.class == "string") {
+				node.class.add(props.class);
+			} else {
+				node.class.add(...props.class);
+			}
 		}
 
 		if (props.on) {
@@ -61,14 +73,30 @@ export function vn<T extends keyof HTMLElementTagNameMap>(
 				node.events.on(event, handler as EventListener);
 			}
 		}
+		const on_pre: string = "on:";
+		for (const key in props) {
+			const p = props[key as keyof typeof props];
+			if (key.startsWith(on_pre) && typeof p === "function") {
+				const event = key.slice(on_pre.length).toLowerCase();
+				node.events.on(event, p as EventListener);
+			}
+		}
 
 		if (props.ref) {
 			props.ref(node);
 		}
+
+		if (props.use) {
+			node.use(props.use);
+		}
 	}
 
-	node.append(...children);
-
+	const all_string = children.every((e) => typeof e == "string");
+	if (all_string) {
+		node.append(children.join(""));
+	} else {
+		node.append(...children);
+	}
 	return node;
 }
 

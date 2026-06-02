@@ -16,7 +16,10 @@ class VNodeUtilities {
         });
     }
     static flattenElements(contents) {
-        return contents.map((a) => {
+        return contents
+            .flat()
+            .filter((content) => content != undefined && content != false)
+            .map((a) => {
             let t = typeof a;
             // convert number or bool types to string
             a = "number" == t || "boolean" == t ? String(a) : a;

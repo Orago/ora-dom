@@ -4,7 +4,6 @@ import type {
 	VNodeStyleDeclarationWithProps,
 	VNodeWhereOptions,
 } from "./interfaces.js";
-import type { ProxyNode } from "./proxynode.js";
 import type { VNode } from "./vnode.js";
 
 type StaticMethodKeys<T> = {
@@ -34,15 +33,18 @@ export class VNodeUtilities {
 	}
 
 	public static flattenElements(contents: VNodeChildList): HTMLElement[] {
-		return contents.map((a) => {
-			let t = typeof a;
+		return contents
+			.flat()
+			.filter((content) => content != undefined && content != false)
+			.map((a) => {
+				let t = typeof a;
 
-			// convert number or bool types to string
-			a = "number" == t || "boolean" == t ? String(a) : a;
-			a = "string" == typeof a ? document.createTextNode(a) : a;
+				// convert number or bool types to string
+				a = "number" == t || "boolean" == t ? String(a) : a;
+				a = "string" == typeof a ? document.createTextNode(a) : a;
 
-			return a as HTMLElement;
-		});
+				return a as HTMLElement;
+			});
 	}
 
 	public static injectItems<T extends HTMLElement>(
@@ -139,44 +141,40 @@ export class VNodeUtilities {
 		}
 	}
 
-		public static elementTextFind(
-				options: Exclude<VNodeWhereOptions["text"], undefined>,
-				dict: [string, any][]
-			) {
-				return dict.filter(([text]) => {
-					if (options.lowercase == true) {
-						text = String(text).toLowerCase();
-					}
-					if (options.uppercase == true) {
-						text = String(text).toUpperCase();
-					}
-	
-					if (typeof options.find == "function") {
-						return options.find(text) == true;
-					} else {
-						return text === options.find;
-					}
-				});
+	public static elementTextFind(
+		options: Exclude<VNodeWhereOptions["text"], undefined>,
+		dict: [string, any][]
+	) {
+		return dict.filter(([text]) => {
+			if (options.lowercase == true) {
+				text = String(text).toLowerCase();
 			}
-	
+			if (options.uppercase == true) {
+				text = String(text).toUpperCase();
+			}
+
+			if (typeof options.find == "function") {
+				return options.find(text) == true;
+			} else {
+				return text === options.find;
+			}
+		});
+	}
 
 	public static whereString(options: VNodeWhereOptions): string {
-			const class_str = options.classes?.map((e) => "." + e)?.join("");
-			const attr_str = Object.entries(options.attributes ?? {}).map(
-				([k, v]) => {
-					k = VNodeUtilities.formatAttributeName("kebab", k);
-					return `[${k}='${v}']`;
-				}
-			);
-			const data_str = Object.entries(options.data ?? {}).map(
-				([k, v]) => {
-					k = VNodeUtilities.formatAttributeName("kebab", k);
-					return `[data-${k}='${v}']`;
-				}
-			);
-			return `${options.id ?? ""}${class_str}${attr_str}${data_str}`;
-		}
-	
+		const class_str = options.classes?.map((e) => "." + e)?.join("");
+		const attr_str = Object.entries(options.attributes ?? {}).map(
+			([k, v]) => {
+				k = VNodeUtilities.formatAttributeName("kebab", k);
+				return `[${k}='${v}']`;
+			}
+		);
+		const data_str = Object.entries(options.data ?? {}).map(([k, v]) => {
+			k = VNodeUtilities.formatAttributeName("kebab", k);
+			return `[data-${k}='${v}']`;
+		});
+		return `${options.id ?? ""}${class_str}${attr_str}${data_str}`;
+	}
 }
 export class VNodeUtilityClass<T extends VNode = VNode> {
 	constructor(public node: T) {}
@@ -194,5 +192,3 @@ export function VNodeExtractEl(node: VNodeExtractable): HTMLElement {
 
 	return node;
 }
-
-

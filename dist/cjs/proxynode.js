@@ -1,10 +1,7 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.qsAll = exports.qs = exports.newNode = exports.generateProxyNode = exports.ProxyNode = exports.ProxynodeTracking = exports.PNodeUtil = void 0;
-const emitter_1 = __importDefault(require("@orago/lib/emitter"));
+const emitter_1 = require("@orago/lib/emitter");
 const submap_js_1 = require("./submap.js");
 const vnode_utilities_js_1 = require("./vnode_utilities.js");
 class PNodeUtil {

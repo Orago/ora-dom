@@ -6,11 +6,15 @@ export type VNProperties<T extends keyof HTMLElementTagNameMap> = {
     properties?: Partial<HTMLElementTagNameMap[T]>;
     style?: Partial<CSSStyleDeclaration>;
     dataset?: Record<string, string>;
-    class?: string[];
+    class?: string[] | string;
     on?: {
         [K in keyof HTMLElementEventMap]?: (this: VNodeTagged<T>, ev: HTMLElementEventMap[K]) => any;
     };
     ref?: (el: VNodeTagged<T>) => void;
+    use?: ((node: VNodeTagged<T>) => void)[];
+    children?: any;
+} & {
+    [K in keyof HTMLElementEventMap as `on:${K}`]?: (this: VNodeTagged<T>, ev: HTMLElementEventMap[K]) => any;
 };
 /**
  * Virtual Node (Functional implementation)
