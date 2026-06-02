@@ -2,14 +2,11 @@ import { Emitter, Signal, State } from "@orago/lib";
 import { SubMap } from "../submap.js";
 import { VNodeUtilityClass } from "../vnode_utilities.js";
 import type { VNode } from "../vnode.js";
+import { ReservedEvents } from "./base_components.js";
 export type VNodeEventsT = typeof ReservedEvents;
 export type VNodeEventKeys = (keyof HTMLElementEventMap | keyof VNodeEventsT) | (string & {});
 type StateValues<T extends readonly State<any>[]> = {
     [K in keyof T]: ReturnType<T[K]["get"]>;
-};
-export declare const ReservedEvents: {
-    connected: () => void;
-    disconnected: () => void;
 };
 export declare const VNODE_FLAG: (name: string) => string;
 export declare class VNodeEventGroup {

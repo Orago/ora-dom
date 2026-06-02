@@ -2,13 +2,7 @@ import { Emitter, Signal } from "@orago/lib";
 import { SubMap } from "../submap.js";
 import { VNodeUtilities, VNodeUtilityClass } from "../vnode_utilities.js";
 import { StateTracking } from "./vnode_tracking.js";
-const VOID_EVENT = () => { };
-export const ReservedEvents = {
-    // "dom-append": VOID_EVENT,
-    // "dom-remove": VOID_EVENT,
-    connected: VOID_EVENT,
-    disconnected: VOID_EVENT,
-};
+import { ReservedEvents } from "./base_components.js";
 export const VNODE_FLAG = (name) => `__vnode_${name}`;
 export class VNodeEventGroup {
     constructor(node) {

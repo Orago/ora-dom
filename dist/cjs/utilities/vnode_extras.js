@@ -5,7 +5,7 @@ const lib_1 = require("@orago/lib");
 const submap_js_1 = require("../submap.js");
 const vnode_utilities_js_1 = require("../vnode_utilities.js");
 const vnode_tracking_js_1 = require("./vnode_tracking.js");
-const events_js_1 = require("./events.js");
+const base_components_js_1 = require("./base_components.js");
 class VNodeAnimation {
     constructor(node, styles, options) {
         this.node = node;
@@ -192,7 +192,7 @@ class VNodeEventCollection {
     }
 }
 VNodeEventCollection.reserved_events = [
-    ...Object.keys(events_js_1.ReservedEvents),
+    ...Object.keys(base_components_js_1.ReservedEvents),
     // "dom-append",
     // "dom-remove",
 ];

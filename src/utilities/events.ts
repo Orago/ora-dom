@@ -3,8 +3,7 @@ import { SubMap } from "../submap.js";
 import { VNodeUtilities, VNodeUtilityClass } from "../vnode_utilities.js";
 import type { VNode } from "../vnode.js";
 import { StateTracking } from "./vnode_tracking.js";
-
-const VOID_EVENT: () => void = () => {};
+import { ReservedEvents } from "./base_components.js";
 
 export type VNodeEventsT = typeof ReservedEvents;
 export type VNodeEventKeys =
@@ -15,12 +14,7 @@ type StateValues<T extends readonly State<any>[]> = {
 	[K in keyof T]: ReturnType<T[K]["get"]>;
 };
 
-export const ReservedEvents = {
-	// "dom-append": VOID_EVENT,
-	// "dom-remove": VOID_EVENT,
-	connected: VOID_EVENT,
-	disconnected: VOID_EVENT,
-} satisfies Record<string, () => void>;
+
 
 export const VNODE_FLAG = (name: string) => `__vnode_${name}`;
 

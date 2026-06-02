@@ -2,7 +2,7 @@ import { Emitter } from "@orago/lib";
 import { SubMap } from "../submap.js";
 import { VNodeUtilities, VNodeUtilityClass } from "../vnode_utilities.js";
 import { SizeTracking, StateTracking } from "./vnode_tracking.js";
-import { ReservedEvents } from "./events.js";
+import { ReservedEvents } from "./base_components.js";
 class VNodeAnimation {
     constructor(node, styles, options) {
         this.node = node;

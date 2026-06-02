@@ -935,6 +935,7 @@ const ReservedEvents = {
     connected: VOID_EVENT,
     disconnected: VOID_EVENT,
 };
+
 const VNODE_FLAG = (name) => `__vnode_${name}`;
 class VNodeEventGroup {
     constructor(node) {

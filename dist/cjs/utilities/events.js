@@ -1,17 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.normalizeEvent = exports.VNodeEvents = exports.VNodeEventGroup = exports.VNODE_FLAG = exports.ReservedEvents = void 0;
+exports.normalizeEvent = exports.VNodeEvents = exports.VNodeEventGroup = exports.VNODE_FLAG = void 0;
 const lib_1 = require("@orago/lib");
 const submap_js_1 = require("../submap.js");
 const vnode_utilities_js_1 = require("../vnode_utilities.js");
 const vnode_tracking_js_1 = require("./vnode_tracking.js");
-const VOID_EVENT = () => { };
-exports.ReservedEvents = {
-    // "dom-append": VOID_EVENT,
-    // "dom-remove": VOID_EVENT,
-    connected: VOID_EVENT,
-    disconnected: VOID_EVENT,
-};
+const base_components_js_1 = require("./base_components.js");
 const VNODE_FLAG = (name) => `__vnode_${name}`;
 exports.VNODE_FLAG = VNODE_FLAG;
 class VNodeEventGroup {
@@ -107,7 +101,7 @@ class VNodeEventCollection {
     }
 }
 VNodeEventCollection.reserved_events = [
-    ...Object.keys(exports.ReservedEvents),
+    ...Object.keys(base_components_js_1.ReservedEvents),
 ];
 class VNodeEvents extends vnode_utilities_js_1.VNodeUtilityClass {
     static getAlways(element) {

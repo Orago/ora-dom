@@ -8,7 +8,8 @@ import { SubMap } from "../submap.js";
 import { VNodeUtilities, VNodeUtilityClass } from "../vnode_utilities.js";
 import type { VNode } from "../vnode.js";
 import { SizeTracking, StateTracking } from "./vnode_tracking.js";
-import { ReservedEvents, VNodeEventKeys, VNodeEventsT } from "./events.js";
+import { VNodeEventKeys, VNodeEventsT } from "./events.js";
+import { ReservedEvents } from "./base_components.js";
 
 class VNodeAnimation<T extends VNode> {
 	public animation: Animation;
@@ -18,7 +19,6 @@ class VNodeAnimation<T extends VNode> {
 		styles: StyleDeclaration[],
 		options: VNodeAnimationOptions
 	) {
-
 		this.animation = this.node.element.animate(
 			styles as Keyframe[],
 			options.animation
@@ -107,8 +107,6 @@ export class VNodeClasses<T extends VNode> extends VNodeUtilityClass<T> {
 			element.classList.remove(...args);
 		}
 	}
-
-
 
 	public call(...classes: string[]): T;
 	public call(nest: (arg0: this) => void): T;
