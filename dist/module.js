@@ -1375,6 +1375,9 @@ let VNodeEvents$1 = class VNodeEvents extends VNodeUtilityClass {
                     const event = key.slice(on_pre.length).toLowerCase();
                     this.on(event, p);
                 }
+                else {
+                    this.on(key, p);
+                }
             }
         }
         return this.node;
