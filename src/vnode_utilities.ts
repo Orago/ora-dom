@@ -10,7 +10,7 @@ export type VNodeTagged<T extends keyof HTMLElementTagNameMap> = VNode<
 	HTMLElementTagNameMap[T]
 >;
 
-export type VNProperties<T extends keyof HTMLElementTagNameMap> = {
+export type VNProperties<T extends keyof HTMLElementTagNameMap = "div"> = {
 	attributes?: Partial<
 		Record<string, string | number> & HTMLElementTagNameMap[T]
 	>;
@@ -256,6 +256,13 @@ export class VNodeUtilities {
 
 			if (props.use) {
 				(node as VNodeTagged<T>).use(props.use);
+			}
+			const children = props.children ?? [];
+			const all_string = children.every((e: any) => typeof e == "string");
+			if (all_string) {
+				node.append(children.join(""));
+			} else {
+				node.append(...children);
 			}
 		}
 	}

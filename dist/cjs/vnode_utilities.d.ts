@@ -1,7 +1,7 @@
 import type { VNodeChildList, VNodeExtractable, VNodeStyleDeclarationWithProps, VNodeWhereOptions } from "./interfaces.js";
 import type { VNode } from "./vnode.js";
 export type VNodeTagged<T extends keyof HTMLElementTagNameMap> = VNode<HTMLElementTagNameMap[T]>;
-export type VNProperties<T extends keyof HTMLElementTagNameMap> = {
+export type VNProperties<T extends keyof HTMLElementTagNameMap = "div"> = {
     attributes?: Partial<Record<string, string | number> & HTMLElementTagNameMap[T]>;
     properties?: Partial<HTMLElementTagNameMap[T]>;
     style?: VNodeStyleDeclarationWithProps;

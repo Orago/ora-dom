@@ -13,14 +13,12 @@ export function vn<T extends keyof HTMLElementTagNameMap>(
 ): VNodeTagged<T> {
 	const node: VNodeTagged<T> = new VNode(tag);
 
+	if (props) {
+		props.children ??= children;
+	}
+
 	VNodeUtilities.applyVNProps<T>(node, props);
 
-	const all_string = children.every((e) => typeof e == "string");
-	if (all_string) {
-		node.append(children.join(""));
-	} else {
-		node.append(...children);
-	}
 	return node;
 }
 

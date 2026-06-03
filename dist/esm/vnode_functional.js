@@ -4,15 +4,12 @@ import { VNode } from "./vnode.js";
  * Virtual Node (Functional implementation)
  */
 export function vn(tag, props, ...children) {
+    var _a;
     const node = new VNode(tag);
+    if (props) {
+        (_a = props.children) !== null && _a !== void 0 ? _a : (props.children = children);
+    }
     VNodeUtilities.applyVNProps(node, props);
-    const all_string = children.every((e) => typeof e == "string");
-    if (all_string) {
-        node.append(children.join(""));
-    }
-    else {
-        node.append(...children);
-    }
     return node;
 }
 /**

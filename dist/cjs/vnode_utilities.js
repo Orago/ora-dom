@@ -123,6 +123,7 @@ class VNodeUtilities {
         return `${(_e = options.id) !== null && _e !== void 0 ? _e : ""}${class_str}${attr_str}${data_str}`;
     }
     static applyVNProps(node, props) {
+        var _a;
         if (props) {
             if (props.attributes) {
                 node.attr(props.attributes);
@@ -164,6 +165,14 @@ class VNodeUtilities {
             }
             if (props.use) {
                 node.use(props.use);
+            }
+            const children = (_a = props.children) !== null && _a !== void 0 ? _a : [];
+            const all_string = children.every((e) => typeof e == "string");
+            if (all_string) {
+                node.append(children.join(""));
+            }
+            else {
+                node.append(...children);
             }
         }
     }
