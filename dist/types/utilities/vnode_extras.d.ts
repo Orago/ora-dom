@@ -55,7 +55,7 @@ export declare class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
     element: HTMLElement;
     constructor(node: T);
     nest(run: ((arg0: this) => void) | [event: VNodeEventKeys, callback: Function][] | {
-        [K in VNodeEventKeys as `on:${K}`]?: (ev: Function) => any;
+        [K in VNodeEventKeys as `on:${K}`]?: (...ev: any[]) => any;
     }): this["node"];
     call(...args: Parameters<VNodeEvents<this["node"]>["nest"]>): this["node"];
     on(event: VNodeEventKeys, callback: Function): this;

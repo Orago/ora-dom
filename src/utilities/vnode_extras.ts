@@ -339,7 +339,7 @@ export class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
 			| ((arg0: this) => void)
 			| [event: VNodeEventKeys, callback: Function][]
 			| {
-					[K in VNodeEventKeys as `on:${K}`]?: (ev: Function) => any;
+					[K in VNodeEventKeys as `on:${K}`]?: (...ev: any[]) => any;
 			  }
 	): this["node"] {
 		if (typeof run == "function") {
