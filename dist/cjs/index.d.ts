@@ -1,7 +1,7 @@
 export { VNX } from "./jsx-runtime.js";
 export { VNode } from "./vnode.js";
 export { vn, VNFragment } from "./vnode_functional.js";
-export type { VNProperties, VNodeTagged } from "./vnode_functional.js";
+export type { VNProperties, VNodeTagged } from "./vnode_utilities.js";
 export { StyledVNode } from "./vnode_styled.js";
 export { StateTracking } from "./utilities/vnode_tracking.js";
 export { VNodeEventGroup } from "./utilities/events.js";

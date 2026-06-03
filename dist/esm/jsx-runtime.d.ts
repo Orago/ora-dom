@@ -1,5 +1,6 @@
+import { VNProperties } from "./vnode_utilities.js";
 import { VNode } from "./vnode.js";
-import { VNFragment, VNProperties } from "./vnode_functional.js";
+import { VNFragment } from "./vnode_functional.js";
 export declare class VNX extends VNode {
     constructor(type: keyof HTMLElementTagNameMap, props: JsxProps);
 }
@@ -7,7 +8,7 @@ declare global {
     namespace JSX {
         type Element = ReturnType<typeof import("./vnode_functional.js").vn>;
         type IntrinsicElements = {
-            [K in keyof HTMLElementTagNameMap]: import("./vnode_functional.ts").VNProperties<K>;
+            [K in keyof HTMLElementTagNameMap]: import("./vnode_utilities.ts").VNProperties<K>;
         };
     }
 }

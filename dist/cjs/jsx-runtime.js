@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.jsxDEV = exports.Fragment = exports.jsxs = exports.jsx = exports.VNX = void 0;
-// polyfill for jsx
 const vnode_js_1 = require("./vnode.js");
 const vnode_functional_js_1 = require("./vnode_functional.js");
+const vnode_utilities_js_1 = require("./vnode_utilities.js");
 class VNX extends vnode_js_1.VNode {
     constructor(type, props) {
         super(type);
-        (0, vnode_functional_js_1.applyVNProps)(this, props);
+        vnode_utilities_js_1.VNodeUtilities.applyVNProps(this, props);
     }
 }
 exports.VNX = VNX;
@@ -16,7 +16,7 @@ function jsx(type, props, key) {
     if (typeof type === "function") {
         return new type(props);
     }
-    return (0, vnode_functional_js_1.vn)(type, props, ...((_a = props === null || props === void 0 ? void 0 : props.children) !== null && _a !== void 0 ? _a : []));
+    return (0, vnode_functional_js_1.vn)(type, props, vnode_utilities_js_1.VNodeUtilities.flattenElements([(_a = props === null || props === void 0 ? void 0 : props.children) !== null && _a !== void 0 ? _a : []]));
 }
 exports.jsx = jsx;
 exports.jsxs = jsx;

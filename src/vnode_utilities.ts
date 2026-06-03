@@ -6,6 +6,35 @@ import type {
 } from "./interfaces.js";
 import type { VNode } from "./vnode.js";
 
+export type VNodeTagged<T extends keyof HTMLElementTagNameMap> = VNode<
+	HTMLElementTagNameMap[T]
+>;
+
+export type VNProperties<T extends keyof HTMLElementTagNameMap> = {
+	attributes?: Partial<
+		Record<string, string | number> & HTMLElementTagNameMap[T]
+	>;
+	properties?: Partial<HTMLElementTagNameMap[T]>;
+	style?: VNodeStyleDeclarationWithProps;
+	dataset?: Record<string, string>;
+	class?: string[] | string;
+	on?: {
+		[K in keyof HTMLElementEventMap]?: (
+			this: VNodeTagged<T>,
+			ev: HTMLElementEventMap[K]
+		) => any;
+	};
+	// `on:${string}`: any;
+	ref?: (el: VNodeTagged<T>) => void;
+	use?: ((node: VNodeTagged<T>) => void)[];
+	children?: any;
+} & {
+	[K in keyof HTMLElementEventMap as `on:${K}`]?: (
+		this: VNodeTagged<T>,
+		ev: HTMLElementEventMap[K]
+	) => any;
+};
+
 type StaticMethodKeys<T> = {
 	[K in keyof T]: T[K] extends (...args: any[]) => any ? K : never;
 }[keyof T];
@@ -174,6 +203,61 @@ export class VNodeUtilities {
 			return `[data-${k}='${v}']`;
 		});
 		return `${options.id ?? ""}${class_str}${attr_str}${data_str}`;
+	}
+
+	public static applyVNProps<T extends keyof HTMLElementTagNameMap = "div">(
+		node: VNode,
+		props?: VNProperties<T> | null
+	) {
+		if (props) {
+			if (props.attributes) {
+				node.attr(props.attributes);
+			}
+
+			if (props.properties) {
+				Object.assign(node.element, props.properties);
+			}
+
+			if (props.style) {
+				node.style(props.style);
+			}
+
+			if (props.dataset) {
+				for (const [key, value] of Object.entries(props.dataset)) {
+					node.element.dataset[key] = value;
+				}
+			}
+
+			if (props.class) {
+				if (typeof props.class == "string") {
+					node.class.add(props.class);
+				} else {
+					node.class.add(...props.class);
+				}
+			}
+
+			if (props.on) {
+				for (const [event, handler] of Object.entries(props.on)) {
+					node.events.on(event, handler as EventListener);
+				}
+			}
+			const on_pre: string = "on:";
+			for (const key in props) {
+				const p = props[key as keyof typeof props];
+				if (key.startsWith(on_pre) && typeof p === "function") {
+					const event = key.slice(on_pre.length).toLowerCase();
+					node.events.on(event, p as EventListener);
+				}
+			}
+
+			if (props.ref) {
+				props.ref(node as VNodeTagged<T>);
+			}
+
+			if (props.use) {
+				(node as VNodeTagged<T>).use(props.use);
+			}
+		}
 	}
 }
 export class VNodeUtilityClass<T extends VNode = VNode> {

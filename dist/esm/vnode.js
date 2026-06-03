@@ -1,7 +1,7 @@
 var _a;
 import { Emitter, makeCallableClass, trapValue } from "@orago/lib";
 import { ProxyNode } from "./proxynode.js";
-import { VNodeUtilities, VNodeExtractEl } from "./vnode_utilities.js";
+import { VNodeUtilities, VNodeExtractEl, } from "./vnode_utilities.js";
 import { VNodeClasses, VNodeEvents, VNodeStyle, } from "./utilities/vnode_extras.js";
 export class VNode {
     static getElement(el) {
@@ -26,10 +26,13 @@ export class VNode {
         const element = VNode.getElement(el);
         return new VNode(element);
     }
-    constructor(element) {
+    constructor(element, props) {
         trapValue(this, "style", () => makeCallableClass(VNodeStyle, this));
         trapValue(this, "class", () => makeCallableClass(VNodeClasses, this));
         trapValue(this, "events", () => makeCallableClass(VNodeEvents, this));
+        if (props != undefined) {
+            VNodeUtilities.applyVNProps(this, props);
+        }
         if (typeof element === "string") {
             this.element = document.createElement(element);
         }

@@ -29,10 +29,13 @@ class VNode {
         const element = VNode.getElement(el);
         return new VNode(element);
     }
-    constructor(element) {
+    constructor(element, props) {
         (0, lib_1.trapValue)(this, "style", () => (0, lib_1.makeCallableClass)(vnode_extras_js_1.VNodeStyle, this));
         (0, lib_1.trapValue)(this, "class", () => (0, lib_1.makeCallableClass)(vnode_extras_js_1.VNodeClasses, this));
         (0, lib_1.trapValue)(this, "events", () => (0, lib_1.makeCallableClass)(vnode_extras_js_1.VNodeEvents, this));
+        if (props != undefined) {
+            vnode_utilities_js_1.VNodeUtilities.applyVNProps(this, props);
+        }
         if (typeof element === "string") {
             this.element = document.createElement(element);
         }

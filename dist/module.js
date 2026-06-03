@@ -402,6 +402,51 @@ class VNodeUtilities {
         });
         return `${(_e = options.id) !== null && _e !== void 0 ? _e : ""}${class_str}${attr_str}${data_str}`;
     }
+    static applyVNProps(node, props) {
+        if (props) {
+            if (props.attributes) {
+                node.attr(props.attributes);
+            }
+            if (props.properties) {
+                Object.assign(node.element, props.properties);
+            }
+            if (props.style) {
+                node.style(props.style);
+            }
+            if (props.dataset) {
+                for (const [key, value] of Object.entries(props.dataset)) {
+                    node.element.dataset[key] = value;
+                }
+            }
+            if (props.class) {
+                if (typeof props.class == "string") {
+                    node.class.add(props.class);
+                }
+                else {
+                    node.class.add(...props.class);
+                }
+            }
+            if (props.on) {
+                for (const [event, handler] of Object.entries(props.on)) {
+                    node.events.on(event, handler);
+                }
+            }
+            const on_pre = "on:";
+            for (const key in props) {
+                const p = props[key];
+                if (key.startsWith(on_pre) && typeof p === "function") {
+                    const event = key.slice(on_pre.length).toLowerCase();
+                    node.events.on(event, p);
+                }
+            }
+            if (props.ref) {
+                props.ref(node);
+            }
+            if (props.use) {
+                node.use(props.use);
+            }
+        }
+    }
 }
 class VNodeUtilityClass {
     constructor(node) {
@@ -1374,10 +1419,13 @@ class VNode {
         const element = VNode.getElement(el);
         return new VNode(element);
     }
-    constructor(element) {
+    constructor(element, props) {
         trapValue(this, "style", () => makeCallableClass(VNodeStyle, this));
         trapValue(this, "class", () => makeCallableClass(VNodeClasses, this));
         trapValue(this, "events", () => makeCallableClass(VNodeEvents$1, this));
+        if (props != undefined) {
+            VNodeUtilities.applyVNProps(this, props);
+        }
         if (typeof element === "string") {
             this.element = document.createElement(element);
         }
@@ -1574,57 +1622,12 @@ VNode.extractEl = VNodeExtractEl;
 VNode.send_events = false;
 VNode.events = new Emitter();
 
-function applyVNProps(node, props) {
-    if (props) {
-        if (props.attributes) {
-            node.attr(props.attributes);
-        }
-        if (props.properties) {
-            Object.assign(node.element, props.properties);
-        }
-        if (props.style) {
-            node.style(props.style);
-        }
-        if (props.dataset) {
-            for (const [key, value] of Object.entries(props.dataset)) {
-                node.element.dataset[key] = value;
-            }
-        }
-        if (props.class) {
-            if (typeof props.class == "string") {
-                node.class.add(props.class);
-            }
-            else {
-                node.class.add(...props.class);
-            }
-        }
-        if (props.on) {
-            for (const [event, handler] of Object.entries(props.on)) {
-                node.events.on(event, handler);
-            }
-        }
-        const on_pre = "on:";
-        for (const key in props) {
-            const p = props[key];
-            if (key.startsWith(on_pre) && typeof p === "function") {
-                const event = key.slice(on_pre.length).toLowerCase();
-                node.events.on(event, p);
-            }
-        }
-        if (props.ref) {
-            props.ref(node);
-        }
-        if (props.use) {
-            node.use(props.use);
-        }
-    }
-}
 /**
  * Virtual Node (Functional implementation)
  */
 function vn(tag, props, ...children) {
     const node = new VNode(tag);
-    applyVNProps(node, props);
+    VNodeUtilities.applyVNProps(node, props);
     const all_string = children.every((e) => typeof e == "string");
     if (all_string) {
         node.append(children.join(""));
@@ -1645,11 +1648,10 @@ function VNFragment(...children) {
     return frag;
 }
 
-// polyfill for jsx
 class VNX extends VNode {
     constructor(type, props) {
         super(type);
-        applyVNProps(this, props);
+        VNodeUtilities.applyVNProps(this, props);
     }
 }
 

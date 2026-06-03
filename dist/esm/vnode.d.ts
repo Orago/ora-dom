@@ -1,6 +1,6 @@
 import { Emitter, makeCallableClass } from "@orago/lib";
 import type { VNodeExtractable, VNodeChildList, VNodeElementName, ResolveElement, VNodeWhereOptions } from "./interfaces.js";
-import { VNodeUtilities, VNodeExtractEl } from "./vnode_utilities.js";
+import { VNodeUtilities, VNodeExtractEl, VNProperties } from "./vnode_utilities.js";
 import { VNodeClasses, VNodeEvents, VNodeStyle } from "./utilities/vnode_extras.js";
 export declare class VNode<E extends HTMLElement = HTMLElement> {
     static Utilities: typeof VNodeUtilities;
@@ -55,7 +55,7 @@ export declare class VNode<E extends HTMLElement = HTMLElement> {
      * Event manager
      */
     events: ReturnType<typeof makeCallableClass<typeof VNodeEvents<this>>>;
-    constructor(element: VNodeElementName | VNodeExtractable);
+    constructor(element: VNodeElementName | VNodeExtractable, props?: VNProperties<"div">);
     ref(run: (arg0: this) => void): this;
     use(plugins: ((node: this) => void)[]): this;
     attr(attributes?: Partial<Record<keyof E | (string & {}), string | number>>): this;

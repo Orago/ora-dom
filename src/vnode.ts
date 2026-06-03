@@ -7,7 +7,11 @@ import type {
 	VNodeWhereOptions,
 } from "./interfaces.js";
 import { ProxyNode } from "./proxynode.js";
-import { VNodeUtilities, VNodeExtractEl } from "./vnode_utilities.js";
+import {
+	VNodeUtilities,
+	VNodeExtractEl,
+	VNProperties,
+} from "./vnode_utilities.js";
 import {
 	VNodeClasses,
 	VNodeEvents,
@@ -169,7 +173,10 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 		typeof makeCallableClass<typeof VNodeEvents<this>>
 	>;
 
-	constructor(element: VNodeElementName | VNodeExtractable) {
+	constructor(
+		element: VNodeElementName | VNodeExtractable,
+		props?: VNProperties<"div">
+	) {
 		trapValue(
 			this,
 			"style",
@@ -185,6 +192,10 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 			"events",
 			() => makeCallableClass(VNodeEvents, this as any) as any
 		);
+
+		if (props != undefined) {
+			VNodeUtilities.applyVNProps(this, props);
+		}
 
 		if (typeof element === "string") {
 			this.element = document.createElement(element) as any;

@@ -1,17 +1,13 @@
 // polyfill for jsx
+import { VNProperties } from "./vnode_utilities.js";
 import { VNode } from "./vnode.js";
-import {
-	applyVNProps,
-	vn,
-	VNFragment,
-	VNProperties,
-} from "./vnode_functional.js";
-
+import { vn, VNFragment } from "./vnode_functional.js";
+import { VNodeUtilities } from "./vnode_utilities.js";
 export class VNX extends VNode {
 	constructor(type: keyof HTMLElementTagNameMap, props: JsxProps) {
 		super(type);
 
-		applyVNProps(this, props);
+		VNodeUtilities.applyVNProps(this, props);
 	}
 }
 
@@ -21,7 +17,7 @@ declare global {
 			typeof import("./vnode_functional.js").vn
 		>;
 		export type IntrinsicElements = {
-			[K in keyof HTMLElementTagNameMap]: import("./vnode_functional.ts").VNProperties<K>;
+			[K in keyof HTMLElementTagNameMap]: import("./vnode_utilities.ts").VNProperties<K>;
 		};
 	}
 }
@@ -32,7 +28,11 @@ export function jsx(type: any, props: JsxProps, key: any) {
 		return new type(props);
 	}
 
-	return vn(type, props, ...(props?.children ?? []));
+	return vn(
+		type,
+		props,
+		VNodeUtilities.flattenElements([props?.children ?? []])
+	);
 }
 
 export const jsxs = jsx;
