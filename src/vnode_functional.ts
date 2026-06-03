@@ -34,16 +34,10 @@ export type VNProperties<T extends keyof HTMLElementTagNameMap> = {
 	) => any;
 };
 
-/**
- * Virtual Node (Functional implementation)
- */
-export function vn<T extends keyof HTMLElementTagNameMap>(
-	tag: T,
-	props?: VNProperties<T> | null,
-	...children: VNodeChildList
-): VNodeTagged<T> {
-	const node: VNodeTagged<T> = new VNode(tag);
-
+export function applyVNProps<T extends keyof HTMLElementTagNameMap = "div">(
+	node: VNode,
+	props?: VNProperties<T> | null
+) {
 	if (props) {
 		if (props.attributes) {
 			node.attr(props.attributes);
@@ -86,13 +80,26 @@ export function vn<T extends keyof HTMLElementTagNameMap>(
 		}
 
 		if (props.ref) {
-			props.ref(node);
+			props.ref(node as VNodeTagged<T>);
 		}
 
 		if (props.use) {
-			node.use(props.use);
+			(node as VNodeTagged<T>).use(props.use);
 		}
 	}
+}
+
+/**
+ * Virtual Node (Functional implementation)
+ */
+export function vn<T extends keyof HTMLElementTagNameMap>(
+	tag: T,
+	props?: VNProperties<T> | null,
+	...children: VNodeChildList
+): VNodeTagged<T> {
+	const node: VNodeTagged<T> = new VNode(tag);
+
+	applyVNProps<T>(node, props);
 
 	const all_string = children.every((e) => typeof e == "string");
 	if (all_string) {

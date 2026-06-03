@@ -1,13 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VNFragment = exports.vn = void 0;
+exports.VNFragment = exports.vn = exports.applyVNProps = void 0;
 const vnode_utilities_js_1 = require("./vnode_utilities.js");
 const vnode_js_1 = require("./vnode.js");
-/**
- * Virtual Node (Functional implementation)
- */
-function vn(tag, props, ...children) {
-    const node = new vnode_js_1.VNode(tag);
+function applyVNProps(node, props) {
     if (props) {
         if (props.attributes) {
             node.attr(props.attributes);
@@ -51,6 +47,14 @@ function vn(tag, props, ...children) {
             node.use(props.use);
         }
     }
+}
+exports.applyVNProps = applyVNProps;
+/**
+ * Virtual Node (Functional implementation)
+ */
+function vn(tag, props, ...children) {
+    const node = new vnode_js_1.VNode(tag);
+    applyVNProps(node, props);
     const all_string = children.every((e) => typeof e == "string");
     if (all_string) {
         node.append(children.join(""));

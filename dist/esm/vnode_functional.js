@@ -1,10 +1,6 @@
 import { VNodeUtilities } from "./vnode_utilities.js";
 import { VNode } from "./vnode.js";
-/**
- * Virtual Node (Functional implementation)
- */
-export function vn(tag, props, ...children) {
-    const node = new VNode(tag);
+export function applyVNProps(node, props) {
     if (props) {
         if (props.attributes) {
             node.attr(props.attributes);
@@ -48,6 +44,13 @@ export function vn(tag, props, ...children) {
             node.use(props.use);
         }
     }
+}
+/**
+ * Virtual Node (Functional implementation)
+ */
+export function vn(tag, props, ...children) {
+    const node = new VNode(tag);
+    applyVNProps(node, props);
     const all_string = children.every((e) => typeof e == "string");
     if (all_string) {
         node.append(children.join(""));

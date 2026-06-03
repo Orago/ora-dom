@@ -16,6 +16,7 @@ export type VNProperties<T extends keyof HTMLElementTagNameMap> = {
 } & {
     [K in keyof HTMLElementEventMap as `on:${K}`]?: (this: VNodeTagged<T>, ev: HTMLElementEventMap[K]) => any;
 };
+export declare function applyVNProps<T extends keyof HTMLElementTagNameMap = "div">(node: VNode, props?: VNProperties<T> | null): void;
 /**
  * Virtual Node (Functional implementation)
  */

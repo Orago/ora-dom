@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Experimental = exports.qsAll = exports.qs = exports.ProxyNode = exports.newNode = exports.generateProxyNode = exports.default = exports.JssAnimation = exports.JssStyle = exports.JssClass = exports.JCSS = exports.OC_Animation = exports.OraCssClass = exports.OraCssStyle = exports.OraCss = exports.OragoCss = exports.ObserverTracking = exports.JCSSTracker = exports.Picture = exports.Fullscreen = exports.VNodeEventGroup = exports.StateTracking = exports.StyledVNode = exports.VNFragment = exports.vn = exports.VNode = void 0;
+exports.Experimental = exports.qsAll = exports.qs = exports.ProxyNode = exports.newNode = exports.generateProxyNode = exports.default = exports.JssAnimation = exports.JssStyle = exports.JssClass = exports.JCSS = exports.OC_Animation = exports.OraCssClass = exports.OraCssStyle = exports.OraCss = exports.OragoCss = exports.ObserverTracking = exports.JCSSTracker = exports.Picture = exports.Fullscreen = exports.VNodeEventGroup = exports.StateTracking = exports.StyledVNode = exports.VNFragment = exports.vn = exports.VNode = exports.VNX = void 0;
+var jsx_runtime_js_1 = require("./jsx-runtime.js");
+Object.defineProperty(exports, "VNX", { enumerable: true, get: function () { return jsx_runtime_js_1.VNX; } });
 var vnode_js_1 = require("./vnode.js");
 Object.defineProperty(exports, "VNode", { enumerable: true, get: function () { return vnode_js_1.VNode; } });
 var vnode_functional_js_1 = require("./vnode_functional.js");

@@ -1,5 +1,19 @@
 // polyfill for jsx
-import { vn, VNFragment, VNProperties } from "./vnode_functional.js";
+import { VNode } from "./vnode.js";
+import {
+	applyVNProps,
+	vn,
+	VNFragment,
+	VNProperties,
+} from "./vnode_functional.js";
+
+export class VNX extends VNode {
+	constructor(type: keyof HTMLElementTagNameMap, props: JsxProps) {
+		super(type);
+
+		applyVNProps(this, props);
+	}
+}
 
 declare global {
 	namespace JSX {
@@ -12,8 +26,12 @@ declare global {
 	}
 }
 
-type JsxProps = (VNProperties<any> & { children: any[] }) | null | undefined;
+type JsxProps = (VNProperties<any> & { children?: any[] }) | null | undefined;
 export function jsx(type: any, props: JsxProps, key: any) {
+	if (typeof type === "function") {
+		return new type(props);
+	}
+
 	return vn(type, props, ...(props?.children ?? []));
 }
 
@@ -28,5 +46,5 @@ export const jsxDEV = (
 	source: any,
 	self: any
 ) => {
-	return vn(type, props, ...(props?.children ?? []));
+	return jsx(type, props, key);
 };

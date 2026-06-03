@@ -1,3 +1,4 @@
+export { VNX } from "./jsx-runtime.js";
 export { VNode } from "./vnode.js";
 export { vn, VNFragment } from "./vnode_functional.js";
 export type { VNProperties, VNodeTagged } from "./vnode_functional.js";
@@ -38,4 +39,3 @@ export {
 	qsAll,
 } from "./proxynode.js";
 export * as Experimental from "./experimental.js";
-

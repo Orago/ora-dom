@@ -1564,11 +1564,7 @@ VNode.send_events = false;
 VNode.events = new Emitter();
 new VNode("div").events([["meow", () => { }]]);
 
-/**
- * Virtual Node (Functional implementation)
- */
-function vn(tag, props, ...children) {
-    const node = new VNode(tag);
+function applyVNProps(node, props) {
     if (props) {
         if (props.attributes) {
             node.attr(props.attributes);
@@ -1612,6 +1608,13 @@ function vn(tag, props, ...children) {
             node.use(props.use);
         }
     }
+}
+/**
+ * Virtual Node (Functional implementation)
+ */
+function vn(tag, props, ...children) {
+    const node = new VNode(tag);
+    applyVNProps(node, props);
     const all_string = children.every((e) => typeof e == "string");
     if (all_string) {
         node.append(children.join(""));
@@ -1630,6 +1633,14 @@ function VNFragment(...children) {
     for (const item of items)
         frag.appendChild(item);
     return frag;
+}
+
+// polyfill for jsx
+class VNX extends VNode {
+    constructor(type, props) {
+        super(type);
+        applyVNProps(this, props);
+    }
 }
 
 class ObserverTracking {
@@ -2425,4 +2436,4 @@ var experimental = /*#__PURE__*/Object.freeze({
     __proto__: null
 });
 
-export { experimental as Experimental, Fullscreen, OraCss as JCSS, JCSSTracker, OraCssAnimation as JssAnimation, OraCssStyle as JssClass, OraCssStyle as JssStyle, OraCssAnimation as OC_Animation, ObserverTracking, OraCss, OraCssStyle as OraCssClass, OraCssStyle, ora_css as OragoCss, PictureApi as Picture, ProxyNode, StateTracking, StyledVNode, VNFragment, VNode, VNodeEventGroup, proxynode as default, generateProxyNode, newNode, qs, qsAll, vn };
+export { experimental as Experimental, Fullscreen, OraCss as JCSS, JCSSTracker, OraCssAnimation as JssAnimation, OraCssStyle as JssClass, OraCssStyle as JssStyle, OraCssAnimation as OC_Animation, ObserverTracking, OraCss, OraCssStyle as OraCssClass, OraCssStyle, ora_css as OragoCss, PictureApi as Picture, ProxyNode, StateTracking, StyledVNode, VNFragment, VNX, VNode, VNodeEventGroup, proxynode as default, generateProxyNode, newNode, qs, qsAll, vn };
