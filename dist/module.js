@@ -1434,9 +1434,6 @@ class VNode {
         trapValue(this, "style", () => makeCallableClass(VNodeStyle, this));
         trapValue(this, "class", () => makeCallableClass(VNodeClasses, this));
         trapValue(this, "events", () => makeCallableClass(VNodeEvents$1, this));
-        if (props != undefined) {
-            VNodeUtilities.applyVNProps(this, props);
-        }
         if (typeof element === "string") {
             this.element = document.createElement(element);
         }
@@ -1447,6 +1444,9 @@ class VNode {
             VNode.events.emit("add", this);
         }
         VNode.events.emit("init", this);
+        if (props != undefined) {
+            VNodeUtilities.applyVNProps(this, props);
+        }
     }
     ref(run) {
         run(this);

@@ -193,10 +193,6 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 			() => makeCallableClass(VNodeEvents, this as any) as any
 		);
 
-		if (props != undefined) {
-			VNodeUtilities.applyVNProps(this, props);
-		}
-
 		if (typeof element === "string") {
 			this.element = document.createElement(element) as any;
 		} else {
@@ -208,6 +204,10 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 		}
 
 		VNode.events.emit("init", this as any);
+
+		if (props != undefined) {
+			VNodeUtilities.applyVNProps(this, props);
+		}
 	}
 
 	public ref(run: (arg0: this) => void): this {

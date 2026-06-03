@@ -33,9 +33,6 @@ class VNode {
         (0, lib_1.trapValue)(this, "style", () => (0, lib_1.makeCallableClass)(vnode_extras_js_1.VNodeStyle, this));
         (0, lib_1.trapValue)(this, "class", () => (0, lib_1.makeCallableClass)(vnode_extras_js_1.VNodeClasses, this));
         (0, lib_1.trapValue)(this, "events", () => (0, lib_1.makeCallableClass)(vnode_extras_js_1.VNodeEvents, this));
-        if (props != undefined) {
-            vnode_utilities_js_1.VNodeUtilities.applyVNProps(this, props);
-        }
         if (typeof element === "string") {
             this.element = document.createElement(element);
         }
@@ -46,6 +43,9 @@ class VNode {
             VNode.events.emit("add", this);
         }
         VNode.events.emit("init", this);
+        if (props != undefined) {
+            vnode_utilities_js_1.VNodeUtilities.applyVNProps(this, props);
+        }
     }
     ref(run) {
         run(this);
