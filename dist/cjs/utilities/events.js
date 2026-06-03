@@ -10,7 +10,6 @@ class VNodeEventGroup {
     constructor(node) {
         this.node = node;
         this.map = new Map();
-        this.node = node;
     }
     on(event, callback) {
         this.map.set(event, callback);

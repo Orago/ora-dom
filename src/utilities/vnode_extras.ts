@@ -338,13 +338,28 @@ export class VNodeEvents<T extends VNode> extends VNodeUtilityClass<T> {
 		run:
 			| ((arg0: this) => void)
 			| [event: VNodeEventKeys, callback: Function][]
+			| {
+					[K in keyof HTMLElementEventMap as `on:${K}`]?: (
+						ev: HTMLElementEventMap[K]
+					) => any;
+			  }
 	): this["node"] {
 		if (typeof run == "function") {
 			run(this);
-		} else
+		} else if (Array.isArray(run)) {
 			for (const [event, callback] of run) {
 				this.on(event, callback);
 			}
+		} else if (typeof run == "object") {
+			const on_pre: string = "on:";
+			for (const key in run) {
+				const p = run[key as keyof typeof run];
+				if (key.startsWith(on_pre) && typeof p === "function") {
+					const event = key.slice(on_pre.length).toLowerCase();
+					this.on(event, p as EventListener);
+				}
+			}
+		}
 
 		return this.node;
 	}

@@ -1306,10 +1306,21 @@ let VNodeEvents$1 = class VNodeEvents extends VNodeUtilityClass {
         if (typeof run == "function") {
             run(this);
         }
-        else
+        else if (Array.isArray(run)) {
             for (const [event, callback] of run) {
                 this.on(event, callback);
             }
+        }
+        else if (typeof run == "object") {
+            const on_pre = "on:";
+            for (const key in run) {
+                const p = run[key];
+                if (key.startsWith(on_pre) && typeof p === "function") {
+                    const event = key.slice(on_pre.length).toLowerCase();
+                    this.on(event, p);
+                }
+            }
+        }
         return this.node;
     }
     call(...args) {
@@ -2142,7 +2153,6 @@ class VNodeEventGroup {
     constructor(node) {
         this.node = node;
         this.map = new Map();
-        this.node = node;
     }
     on(event, callback) {
         this.map.set(event, callback);

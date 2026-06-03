@@ -21,7 +21,6 @@ export class VNodeEventGroup {
 	map: Map<keyof HTMLElementEventMap, Function> = new Map();
 
 	constructor(private node: VNode) {
-		this.node = node;
 	}
 
 	public on(event: keyof HTMLElementEventMap, callback: Function): this {
