@@ -58,7 +58,7 @@ export declare class VNode<E extends HTMLElement = HTMLElement> {
     constructor(element: VNodeElementName | VNodeExtractable);
     ref(run: (arg0: this) => void): this;
     use(plugins: ((node: this) => void)[]): this;
-    attr(attributes?: Partial<Record<string, string | number> & E>): this;
+    attr(attributes?: Partial<Record<keyof E | (string & {}), string | number>>): this;
     swap(node: VNodeExtractable): this;
     id(value: string): this;
     id(value: undefined): string;

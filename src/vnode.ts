@@ -213,7 +213,9 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 	}
 
 	public attr(
-		attributes: Partial<Record<string, string | number> & E> = {}
+		attributes: Partial<
+			Record<keyof E | (string & {}), string | number>
+		> = {}
 	): this {
 		VNodeUtilities.setAttributes(this.element, attributes);
 		return this;
@@ -370,5 +372,3 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 		return this;
 	}
 }
-
-new VNode("div").events([["meow", () => {}]]);

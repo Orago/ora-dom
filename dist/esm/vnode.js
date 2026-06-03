@@ -225,4 +225,3 @@ VNode.of = new Proxy({}, {
 VNode.extractEl = VNodeExtractEl;
 VNode.send_events = false;
 VNode.events = new Emitter();
-new VNode("div").events([["meow", () => { }]]);
