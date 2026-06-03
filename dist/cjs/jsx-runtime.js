@@ -12,11 +12,16 @@ class VNX extends vnode_js_1.VNode {
 }
 exports.VNX = VNX;
 function jsx(type, props, key) {
-    var _a;
+    var _a, _b;
     if (typeof type === "function") {
+        if ((props === null || props === void 0 ? void 0 : props.children) != undefined) {
+            props.children = vnode_utilities_js_1.VNodeUtilities.flattenElements([
+                (_a = props.children) !== null && _a !== void 0 ? _a : [],
+            ]);
+        }
         return new type(props);
     }
-    return (0, vnode_functional_js_1.vn)(type, props, vnode_utilities_js_1.VNodeUtilities.flattenElements([(_a = props === null || props === void 0 ? void 0 : props.children) !== null && _a !== void 0 ? _a : []]));
+    return (0, vnode_functional_js_1.vn)(type, props, vnode_utilities_js_1.VNodeUtilities.flattenElements([(_b = props === null || props === void 0 ? void 0 : props.children) !== null && _b !== void 0 ? _b : []]));
 }
 exports.jsx = jsx;
 exports.jsxs = jsx;

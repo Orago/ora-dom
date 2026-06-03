@@ -25,6 +25,11 @@ declare global {
 type JsxProps = (VNProperties<any> & { children?: any[] }) | null | undefined;
 export function jsx(type: any, props: JsxProps, key: any) {
 	if (typeof type === "function") {
+		if (props?.children != undefined) {
+			props.children = VNodeUtilities.flattenElements([
+				props.children ?? [],
+			]);
+		}
 		return new type(props);
 	}
 
