@@ -257,7 +257,10 @@ export class VNodeUtilities {
 			if (props.use) {
 				(node as VNodeTagged<T>).use(props.use);
 			}
-			const children = props.children ?? [];
+			const children = VNodeUtilities.flattenElements([
+				props.children ?? [],
+			]);
+
 			const all_string = children.every((e: any) => typeof e == "string");
 			if (all_string) {
 				node.append(children.join(""));

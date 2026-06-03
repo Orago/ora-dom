@@ -166,7 +166,9 @@ class VNodeUtilities {
             if (props.use) {
                 node.use(props.use);
             }
-            const children = (_a = props.children) !== null && _a !== void 0 ? _a : [];
+            const children = VNodeUtilities.flattenElements([
+                (_a = props.children) !== null && _a !== void 0 ? _a : [],
+            ]);
             const all_string = children.every((e) => typeof e == "string");
             if (all_string) {
                 node.append(children.join(""));
