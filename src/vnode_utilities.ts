@@ -157,7 +157,7 @@ export class VNodeUtilities {
 							(i > 0
 								? e.slice(0, 1).toUpperCase()
 								: e.slice(0, 1).toLowerCase()) +
-							e.slice(1).toLowerCase()
+							e.slice(1)
 					)
 					.join("");
 			case "kebab":

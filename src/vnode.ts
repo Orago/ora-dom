@@ -325,7 +325,7 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 			return this.dataset(
 				Object.fromEntries(
 					Object.keys(this.element.dataset).map((key) => [
-						VNodeUtilities.formatAttributeName("kebab", key),
+						VNodeUtilities.formatAttributeName("camel", key),
 						undefined,
 					])
 				)
@@ -333,7 +333,7 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 		}
 
 		for (let [key, value] of Object.entries(record)) {
-			key = VNodeUtilities.formatAttributeName("kebab", key);
+			key = VNodeUtilities.formatAttributeName("camel", key);
 			if (value == undefined) {
 				delete this.element.dataset[key];
 			} else {

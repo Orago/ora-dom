@@ -134,12 +134,12 @@ export class VNode {
         }
         if (record == "clear") {
             return this.dataset(Object.fromEntries(Object.keys(this.element.dataset).map((key) => [
-                VNodeUtilities.formatAttributeName("kebab", key),
+                VNodeUtilities.formatAttributeName("camel", key),
                 undefined,
             ])));
         }
         for (let [key, value] of Object.entries(record)) {
-            key = VNodeUtilities.formatAttributeName("kebab", key);
+            key = VNodeUtilities.formatAttributeName("camel", key);
             if (value == undefined) {
                 delete this.element.dataset[key];
             }
