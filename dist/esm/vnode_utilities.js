@@ -15,7 +15,7 @@ export class VNodeUtilities {
     static flattenElements(contents) {
         return contents
             .flat()
-            .filter((content) => content != undefined && content != false)
+            .filter((content) => content !== undefined && content !== false)
             .map((a) => {
             let t = typeof a;
             // convert number or bool types to string

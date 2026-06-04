@@ -64,7 +64,7 @@ export class VNodeUtilities {
 	public static flattenElements(contents: VNodeChildList): HTMLElement[] {
 		return contents
 			.flat()
-			.filter((content) => content != undefined && content != false)
+			.filter((content) => content !== undefined && content !== false)
 			.map((a) => {
 				let t = typeof a;
 
