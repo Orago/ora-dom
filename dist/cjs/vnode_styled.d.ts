@@ -1,6 +1,6 @@
 import { ObserverTracking } from "./dom_observer.js";
 import type { VNodeElementName, VNodeExtractable } from "./interfaces.js";
-import { Sparkle, SparkleStyle, SparkleStyleNames, SparkleStyleOptions } from "./sparkle-css.js";
+import { Sparkle, SparkleGroup, SparkleStyle, SparkleStyleNames, SparkleStyleOptions } from "./sparkle-css.js";
 import { VNode } from "./vnode.js";
 declare class StyledNodeManager {
     readonly id: number;
@@ -49,5 +49,12 @@ export declare class JCSSTracker {
     constructor(instance: Sparkle, observer?: ObserverTracking);
     enable(): void;
     disable(): void;
+}
+export declare class StyleNode extends VNode {
+    static css(value: TemplateStringsArray): StyleNode;
+    sparkle: Sparkle;
+    group: SparkleGroup;
+    constructor();
+    css(value: TemplateStringsArray): this;
 }
 export {};

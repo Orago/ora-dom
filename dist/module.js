@@ -2232,6 +2232,25 @@ class JCSSTracker {
         this.observer.events.off("any", this.callback);
     }
 }
+class StyleNode extends VNode {
+    static css(value) {
+        const node = new StyleNode();
+        return node.css(value);
+    }
+    constructor() {
+        const sparkle = new Sparkle();
+        const group = new SparkleGroup();
+        super(sparkle.element);
+        this.sparkle = sparkle;
+        this.group = group;
+        this.sparkle.insert(group);
+    }
+    css(value) {
+        this.group.css(value);
+        this.sparkle.build();
+        return this;
+    }
+}
 
 class VNodeEventGroup {
     constructor(node) {
@@ -2529,4 +2548,4 @@ var experimental = /*#__PURE__*/Object.freeze({
     __proto__: null
 });
 
-export { experimental as Experimental, Fullscreen, Sparkle as JCSS, JCSSTracker, SparkleAnimation as JssAnimation, SparkleStyle as JssClass, SparkleStyle as JssStyle, ObserverTracking, sparkleCss as OragoCss, PictureApi as Picture, ProxyNode, Sparkle, SparkleAnimation, SparkleGroup, SparkleStyle, StateTracking, StyledVNode, VNFragment, VNX, VNode, VNodeEventGroup, proxynode as default, generateProxyNode, newNode, qs, qsAll, vn };
+export { experimental as Experimental, Fullscreen, Sparkle as JCSS, JCSSTracker, SparkleAnimation as JssAnimation, SparkleStyle as JssClass, SparkleStyle as JssStyle, ObserverTracking, sparkleCss as OragoCss, PictureApi as Picture, ProxyNode, Sparkle, SparkleAnimation, SparkleGroup, SparkleStyle, StateTracking, StyleNode, StyledVNode, VNFragment, VNX, VNode, VNodeEventGroup, proxynode as default, generateProxyNode, newNode, qs, qsAll, vn };

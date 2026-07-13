@@ -2,6 +2,7 @@ import { ObserverTracking } from "./dom_observer.js";
 import type { VNodeElementName, VNodeExtractable } from "./interfaces.js";
 import {
 	Sparkle,
+	SparkleGroup,
 	SparkleStyle,
 	SparkleStyleNames,
 	SparkleStyleOptions,
@@ -161,5 +162,31 @@ export class JCSSTracker {
 
 	disable() {
 		this.observer.events.off("any", this.callback);
+	}
+}
+
+export class StyleNode extends VNode {
+	static css(value: TemplateStringsArray) {
+		const node = new StyleNode();
+		return node.css(value);
+	}
+
+	sparkle: Sparkle;
+	group: SparkleGroup;
+
+	constructor() {
+		const sparkle = new Sparkle();
+		const group = new SparkleGroup();
+		super(sparkle.element);
+
+		this.sparkle = sparkle;
+		this.group = group;
+		this.sparkle.insert(group);
+	}
+
+	css(value: TemplateStringsArray): this {
+		this.group.css(value);
+		this.sparkle.build();
+		return this;
 	}
 }

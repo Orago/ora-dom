@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Experimental = exports.qsAll = exports.qs = exports.ProxyNode = exports.newNode = exports.generateProxyNode = exports.default = exports.JssAnimation = exports.JssStyle = exports.JssClass = exports.JCSS = exports.SparkleAnimation = exports.SparkleStyle = exports.SparkleGroup = exports.Sparkle = exports.OragoCss = exports.ObserverTracking = exports.JCSSTracker = exports.Picture = exports.Fullscreen = exports.VNodeEventGroup = exports.StateTracking = exports.StyledVNode = exports.VNFragment = exports.vn = exports.VNode = exports.VNX = void 0;
+exports.Experimental = exports.qsAll = exports.qs = exports.ProxyNode = exports.newNode = exports.generateProxyNode = exports.default = exports.JssAnimation = exports.JssStyle = exports.JssClass = exports.JCSS = exports.SparkleAnimation = exports.SparkleStyle = exports.SparkleGroup = exports.Sparkle = exports.OragoCss = exports.ObserverTracking = exports.JCSSTracker = exports.Picture = exports.Fullscreen = exports.VNodeEventGroup = exports.StateTracking = exports.StyleNode = exports.StyledVNode = exports.VNFragment = exports.vn = exports.VNode = exports.VNX = void 0;
 var jsx_runtime_js_1 = require("./jsx-runtime.js");
 Object.defineProperty(exports, "VNX", { enumerable: true, get: function () { return jsx_runtime_js_1.VNX; } });
 var vnode_js_1 = require("./vnode.js");
@@ -10,6 +10,7 @@ Object.defineProperty(exports, "vn", { enumerable: true, get: function () { retu
 Object.defineProperty(exports, "VNFragment", { enumerable: true, get: function () { return vnode_functional_js_1.VNFragment; } });
 var vnode_styled_js_1 = require("./vnode_styled.js");
 Object.defineProperty(exports, "StyledVNode", { enumerable: true, get: function () { return vnode_styled_js_1.StyledVNode; } });
+Object.defineProperty(exports, "StyleNode", { enumerable: true, get: function () { return vnode_styled_js_1.StyleNode; } });
 var vnode_tracking_js_1 = require("./utilities/vnode_tracking.js");
 Object.defineProperty(exports, "StateTracking", { enumerable: true, get: function () { return vnode_tracking_js_1.StateTracking; } });
 var events_js_1 = require("./utilities/events.js");

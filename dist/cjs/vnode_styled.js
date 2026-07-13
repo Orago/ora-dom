@@ -1,7 +1,7 @@
 "use strict";
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JCSSTracker = exports.StyledVNode = void 0;
+exports.StyleNode = exports.JCSSTracker = exports.StyledVNode = void 0;
 const dom_observer_js_1 = require("./dom_observer.js");
 const sparkle_css_js_1 = require("./sparkle-css.js");
 const vnode_js_1 = require("./vnode.js");
@@ -117,3 +117,23 @@ class JCSSTracker {
     }
 }
 exports.JCSSTracker = JCSSTracker;
+class StyleNode extends vnode_js_1.VNode {
+    static css(value) {
+        const node = new StyleNode();
+        return node.css(value);
+    }
+    constructor() {
+        const sparkle = new sparkle_css_js_1.Sparkle();
+        const group = new sparkle_css_js_1.SparkleGroup();
+        super(sparkle.element);
+        this.sparkle = sparkle;
+        this.group = group;
+        this.sparkle.insert(group);
+    }
+    css(value) {
+        this.group.css(value);
+        this.sparkle.build();
+        return this;
+    }
+}
+exports.StyleNode = StyleNode;

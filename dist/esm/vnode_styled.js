@@ -1,6 +1,6 @@
 var _a;
 import { ObserverTracking } from "./dom_observer.js";
-import { Sparkle, SparkleStyle, } from "./sparkle-css.js";
+import { Sparkle, SparkleGroup, SparkleStyle, } from "./sparkle-css.js";
 import { VNode } from "./vnode.js";
 class StyledNodeManager {
     constructor(id) {
@@ -110,5 +110,24 @@ export class JCSSTracker {
     }
     disable() {
         this.observer.events.off("any", this.callback);
+    }
+}
+export class StyleNode extends VNode {
+    static css(value) {
+        const node = new StyleNode();
+        return node.css(value);
+    }
+    constructor() {
+        const sparkle = new Sparkle();
+        const group = new SparkleGroup();
+        super(sparkle.element);
+        this.sparkle = sparkle;
+        this.group = group;
+        this.sparkle.insert(group);
+    }
+    css(value) {
+        this.group.css(value);
+        this.sparkle.build();
+        return this;
     }
 }
