@@ -1,10 +1,11 @@
+var _a;
 import { ObserverTracking } from "./dom_observer.js";
-import { OraCss, OraCssStyle, } from "./ora_css.js";
+import { Sparkle, SparkleStyle, } from "./sparkle-css.js";
 import { VNode } from "./vnode.js";
 class StyledNodeManager {
     constructor(id) {
         this.id = id;
-        this.class = new OraCssStyle("." + this.getClassName(), {});
+        this.class = new SparkleStyle("." + this.getClassName(), {});
     }
     /**
      * Returns the generated classname prefixed by vns_
@@ -19,16 +20,16 @@ export class StyledVNode extends VNode {
         return ref.constructor;
     }
     static findOrCreate(c, styles) {
-        const is_new = StyledVNode.managers.get(c) == undefined;
+        const is_new = _a.managers.get(c) == undefined;
         const manager = this.getManager(c);
         if (is_new) {
-            if (styles instanceof OraCssStyle) {
+            if (styles instanceof SparkleStyle) {
                 manager.class.data = styles.data;
             }
             else {
                 manager.class.data = styles;
             }
-            this.sheet.styles.insert(manager.class);
+            this.sheet_group.styles.insert(manager.class);
             this.sheet.build();
         }
         return manager.getClassName();
@@ -36,7 +37,7 @@ export class StyledVNode extends VNode {
     static connect(class_ref, styles) {
         const c = this.getConstructor(class_ref);
         if (styles == undefined) {
-            const manager = StyledVNode.managers.get(c);
+            const manager = _a.managers.get(c);
             if (manager != undefined) {
                 class_ref.class.add(manager.getClassName());
             }
@@ -47,11 +48,11 @@ export class StyledVNode extends VNode {
         }
     }
     static getManager(c) {
-        let manager = StyledVNode.managers.get(c);
+        let manager = _a.managers.get(c);
         if (manager == undefined) {
-            const id = ++StyledVNode.class_index;
+            const id = ++_a.class_index;
             manager = new StyledNodeManager(id);
-            StyledVNode.managers.set(c, manager);
+            _a.managers.set(c, manager);
         }
         return manager;
     }
@@ -59,12 +60,12 @@ export class StyledVNode extends VNode {
     static destroy(class_ref) {
         const c = this.getConstructor(class_ref);
         const manager = this.getManager(c);
-        const jss_class = this.sheet.styles.list.get(manager.class.name);
+        const jss_class = this.sheet_group.styles.list.get(manager.class.name);
         if (jss_class) {
-            this.sheet.styles.remove(jss_class);
+            this.sheet_group.styles.remove(jss_class);
             this.sheet.build();
         }
-        StyledVNode.managers.delete(c);
+        _a.managers.delete(c);
     }
     static init() {
         this.sheet.attach();
@@ -74,16 +75,18 @@ export class StyledVNode extends VNode {
     }
     constructor(element) {
         super(element);
-        StyledVNode.connect(this, this.getConstructor().styles);
+        _a.connect(this, this.getConstructor().styles);
     }
     getConstructor() {
         return this.constructor;
     }
 }
+_a = StyledVNode;
 StyledVNode.managers = new Map();
 StyledVNode.class_index = 0;
 /** Should not be changed */
-StyledVNode.sheet = new OraCss();
+StyledVNode.sheet = new Sparkle();
+StyledVNode.sheet_group = _a.sheet.newGroup();
 /** May be overridden by extending the class */
 StyledVNode.styles = {};
 export class JCSSTracker {

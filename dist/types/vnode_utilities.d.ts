@@ -10,8 +10,8 @@ export type VNProperties<T extends keyof HTMLElementTagNameMap = "div"> = {
     on?: {
         [K in keyof HTMLElementEventMap]?: (this: VNodeTagged<T>, ev: HTMLElementEventMap[K]) => any;
     };
-    ref?: (el: VNodeTagged<T>) => void;
-    use?: ((node: VNodeTagged<T>) => void)[];
+    ref?: (el: VNodeTagged<T> | VNode<any>) => void;
+    use?: ((node: VNodeTagged<T> | VNode<any>) => void)[];
     children?: any;
 } & {
     [K in keyof HTMLElementEventMap as `on:${K}`]?: (this: VNodeTagged<T>, ev: HTMLElementEventMap[K]) => any;
@@ -31,11 +31,20 @@ export declare class VNodeUtilities {
     static elementTextFind(options: Exclude<VNodeWhereOptions["text"], undefined>, dict: [string, any][]): [string, any][];
     static whereString(options: VNodeWhereOptions): string;
     static applyVNProps<T extends keyof HTMLElementTagNameMap = "div">(node: VNode, props?: VNProperties<T> | null): void;
+    static useIf<T extends VNode>(condition: boolean, use_if: (node: T) => void, use_else?: (node: T) => void): (node: T) => void;
 }
 export declare class VNodeUtilityClass<T extends VNode = VNode> {
     node: T;
     constructor(node: T);
     nest(run: (arg0: this) => void): this["node"];
+}
+export declare class VNodeTagGroup {
+    static index: number;
+    tag_id: number;
+    getTag(): string;
+    reference(value?: string): (node: VNode<any>) => void;
+    findAll(): NodeListOf<Element>;
+    count(): number;
 }
 export declare function VNodeExtractEl(node: VNodeExtractable): HTMLElement;
 export {};

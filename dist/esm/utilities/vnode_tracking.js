@@ -13,19 +13,24 @@ class VNodeStateObserver {
         return this.tracked_in_dom.get(element) == true;
     }
     constructor() {
-        this.tracked_in_dom = new WeakMap();
+        this.tracked_in_dom = new Map();
         this.observer = new MutationObserver((mutations) => {
             const queried = StateTracking.query();
+            const blah = [];
             for (const mutation of mutations) {
                 let tmp = [];
                 for (const removed of Array.from(mutation.removedNodes)) {
                     tmp.push(...getAllRemovedNodes(removed));
+                    blah.push(removed);
                 }
                 const removed_query = StateTracking.filterQuery(tmp);
                 queried.push(...removed_query);
             }
             for (const node of queried) {
                 const element = node.element;
+                blah.push(element);
+            }
+            for (const element of blah) {
                 if (document.body.contains(element)) {
                     if (this.inDom(element) != true) {
                         VNodeEvents.emit(element, "connected");
@@ -34,8 +39,8 @@ class VNodeStateObserver {
                 }
                 else if (this.inDom(element)) {
                     /* Was in dom but removed */
-                    this.tracked_in_dom.set(element, false);
                     VNodeEvents.emit(element, "disconnected");
+                    this.tracked_in_dom.set(element, false);
                 }
             }
         });
@@ -49,9 +54,7 @@ export class StateTracking {
     static initNodeTracking(node) {
         node.element[this.ref_prop] = new WeakRef(node);
         // node.element.setAttribute(StateTracking.flag, "");
-        node.attr({
-            [this.flag]: "",
-        });
+        node.attr({ [this.flag]: "" });
     }
     static init(options) {
         const init_cb = (node) => this.initNodeTracking(node);

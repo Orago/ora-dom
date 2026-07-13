@@ -1,10 +1,10 @@
 import { ObserverTracking } from "./dom_observer.js";
 import type { VNodeElementName, VNodeExtractable } from "./interfaces.js";
-import { OraCss, OraCssStyleOptions, OraCssStyle, OraCssStyleNames } from "./ora_css.js";
+import { Sparkle, SparkleStyle, SparkleStyleNames, SparkleStyleOptions } from "./sparkle-css.js";
 import { VNode } from "./vnode.js";
 declare class StyledNodeManager {
     readonly id: number;
-    class: OraCssStyle;
+    class: SparkleStyle;
     constructor(id: number);
     /**
      * Returns the generated classname prefixed by vns_
@@ -17,16 +17,17 @@ export declare abstract class StyledVNode<E extends HTMLElement = HTMLElement> e
     static class_index: number;
     /** Should not be changed */
     private static sheet;
+    private static sheet_group;
     /** May be overridden by extending the class */
-    static styles: Partial<Record<OraCssStyleNames, string>> & {
+    static styles: Partial<Record<SparkleStyleNames, string>> & {
         _: unknown;
     };
     static getConstructor<T extends VNode>(ref: T): typeof VNode;
-    static findOrCreate(c: typeof VNode<any>, styles: OraCssStyleOptions | OraCssStyle): string;
+    static findOrCreate(c: typeof VNode<any>, styles: SparkleStyleOptions | SparkleStyle): string;
     /**
      * Connects by finding or creating an instance
      */
-    static connect(class_ref: VNode, styles: OraCssStyleOptions | OraCssStyle): void;
+    static connect(class_ref: VNode, styles: SparkleStyleOptions | SparkleStyle): void;
     /**
      * Connects if there is an existing instance
      */
@@ -35,7 +36,7 @@ export declare abstract class StyledVNode<E extends HTMLElement = HTMLElement> e
     /** Destroys the class and it's relations for a vnode class */
     static destroy(class_ref: VNode): void;
     static init(): void;
-    protected static validStyles<S extends Partial<Record<OraCssStyleNames, string>>>(styles: S): S & {
+    protected static validStyles<S extends Partial<Record<SparkleStyleNames, string>>>(styles: S): S & {
         _: unknown;
     };
     constructor(element: VNodeElementName | VNodeExtractable);
@@ -45,7 +46,7 @@ export declare class JCSSTracker {
     private instance;
     observer: ObserverTracking;
     callback: () => void;
-    constructor(instance: OraCss, observer?: ObserverTracking);
+    constructor(instance: Sparkle, observer?: ObserverTracking);
     enable(): void;
     disable(): void;
 }

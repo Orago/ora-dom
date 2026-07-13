@@ -14,17 +14,19 @@ class VNodeStateObserver {
 	private inDom(element: HTMLElement) {
 		return this.tracked_in_dom.get(element) == true;
 	}
-	private tracked_in_dom: WeakMap<HTMLElement, boolean> = new WeakMap();
+	private tracked_in_dom: Map<HTMLElement, boolean> = new Map();
 	observer: MutationObserver;
 
 	constructor() {
 		this.observer = new MutationObserver((mutations: MutationRecord[]) => {
 			const queried = StateTracking.query();
+			const blah: HTMLElement[] = [];
 
 			for (const mutation of mutations) {
 				let tmp: HTMLElement[] = [];
 				for (const removed of Array.from(mutation.removedNodes)) {
 					tmp.push(...(getAllRemovedNodes(removed) as any));
+					blah.push(removed as HTMLElement);
 				}
 				const removed_query = StateTracking.filterQuery(tmp);
 				queried.push(...removed_query);
@@ -32,7 +34,10 @@ class VNodeStateObserver {
 
 			for (const node of queried) {
 				const element = node.element;
+				blah.push(element);
+			}
 
+			for (const element of blah) {
 				if (document.body.contains(element)) {
 					if (this.inDom(element) != true) {
 						VNodeEvents.emit(element, "connected");
@@ -41,8 +46,8 @@ class VNodeStateObserver {
 					this.tracked_in_dom.set(element, true);
 				} else if (this.inDom(element)) {
 					/* Was in dom but removed */
-					this.tracked_in_dom.set(element, false);
 					VNodeEvents.emit(element, "disconnected");
+					this.tracked_in_dom.set(element, false);
 				}
 			}
 		});
@@ -63,9 +68,7 @@ export class StateTracking {
 		(node.element as any)[this.ref_prop] = new WeakRef(node);
 
 		// node.element.setAttribute(StateTracking.flag, "");
-		node.attr({
-			[this.flag]: "",
-		});
+		node.attr({ [this.flag]: "" });
 	}
 	public static init(options?: { all?: boolean }) {
 		const init_cb = (node: VNode) => this.initNodeTracking(node);
@@ -100,6 +103,7 @@ export class StateTracking {
 			.filter((e) => e instanceof VNode);
 	}
 }
+
 class VNodeSizeObserver {
 	private inDom(element: HTMLElement) {
 		return this.tracked_in_dom.get(element) == true;

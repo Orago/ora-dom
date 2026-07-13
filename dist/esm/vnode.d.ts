@@ -56,6 +56,9 @@ export declare class VNode<E extends HTMLElement = HTMLElement> {
      */
     events: ReturnType<typeof makeCallableClass<typeof VNodeEvents<this>>>;
     constructor(element: VNodeElementName | VNodeExtractable, props?: VNProperties<"div">);
+    /**
+     * @deprecated
+     */
     ref(run: (arg0: this) => void): this;
     use(plugins: ((node: this) => void)[]): this;
     attr(attributes?: Partial<Record<keyof E | (string & {}), string | number>>): this;

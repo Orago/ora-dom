@@ -1,21 +1,20 @@
 import { ObserverTracking } from "./dom_observer.js";
 import type { VNodeElementName, VNodeExtractable } from "./interfaces.js";
 import {
-	OraCss,
-	OraCssStyleOptions,
-	OraCssStyle,
-	OraCssStyleNames,
-} from "./ora_css.js";
+	Sparkle,
+	SparkleStyle,
+	SparkleStyleNames,
+	SparkleStyleOptions,
+} from "./sparkle-css.js";
 import { VNode } from "./vnode.js";
 
-
-type StyleOptions = Partial<Record<OraCssStyleNames, string>>;
+type StyleOptions = Partial<Record<SparkleStyleNames, string>>;
 
 class StyledNodeManager {
-	public class: OraCssStyle;
+	public class: SparkleStyle;
 
 	constructor(public readonly id: number) {
-		this.class = new OraCssStyle("." + this.getClassName(), {});
+		this.class = new SparkleStyle("." + this.getClassName(), {});
 	}
 
 	/**
@@ -34,10 +33,11 @@ export abstract class StyledVNode<
 	static class_index = 0;
 
 	/** Should not be changed */
-	private static sheet = new OraCss();
+	private static sheet = new Sparkle();
+	private static sheet_group = this.sheet.newGroup();
 
 	/** May be overridden by extending the class */
-	static styles: Partial<Record<OraCssStyleNames, string>> & { _: unknown } =
+	static styles: Partial<Record<SparkleStyleNames, string>> & { _: unknown } =
 		{} as any;
 
 	static getConstructor<T extends VNode>(ref: T): typeof VNode {
@@ -46,18 +46,18 @@ export abstract class StyledVNode<
 
 	static findOrCreate(
 		c: typeof VNode<any>,
-		styles: OraCssStyleOptions | OraCssStyle
+		styles: SparkleStyleOptions | SparkleStyle
 	) {
 		const is_new = StyledVNode.managers.get(c) == undefined;
 		const manager = this.getManager(c);
 
 		if (is_new) {
-			if (styles instanceof OraCssStyle) {
+			if (styles instanceof SparkleStyle) {
 				manager.class.data = styles.data;
 			} else {
 				manager.class.data = styles;
 			}
-			this.sheet.styles.insert(manager.class);
+			this.sheet_group.styles.insert(manager.class);
 			this.sheet.build();
 		}
 
@@ -69,7 +69,7 @@ export abstract class StyledVNode<
 	 */
 	static connect(
 		class_ref: VNode,
-		styles: OraCssStyleOptions | OraCssStyle
+		styles: SparkleStyleOptions | SparkleStyle
 	): void;
 	/**
 	 * Connects if there is an existing instance
@@ -77,7 +77,7 @@ export abstract class StyledVNode<
 	static connect(class_ref: VNode): void;
 	static connect(
 		class_ref: VNode,
-		styles?: OraCssStyleOptions | OraCssStyle
+		styles?: SparkleStyleOptions | SparkleStyle
 	): void {
 		const c = this.getConstructor(class_ref);
 		if (styles == undefined) {
@@ -107,10 +107,10 @@ export abstract class StyledVNode<
 	static destroy(class_ref: VNode) {
 		const c = this.getConstructor(class_ref);
 		const manager = this.getManager(c);
-		const jss_class = this.sheet.styles.list.get(manager.class.name);
+		const jss_class = this.sheet_group.styles.list.get(manager.class.name);
 
 		if (jss_class) {
-			this.sheet.styles.remove(jss_class);
+			this.sheet_group.styles.remove(jss_class);
 			this.sheet.build();
 		}
 		StyledVNode.managers.delete(c);
@@ -121,7 +121,7 @@ export abstract class StyledVNode<
 	}
 
 	protected static validStyles<
-		S extends Partial<Record<OraCssStyleNames, string>>
+		S extends Partial<Record<SparkleStyleNames, string>>
 	>(styles: S): S & { _: unknown } {
 		return styles as any;
 	}
@@ -138,7 +138,7 @@ export abstract class StyledVNode<
 export class JCSSTracker {
 	callback: () => void;
 	constructor(
-		private instance: OraCss,
+		private instance: Sparkle,
 		public observer: ObserverTracking = new ObserverTracking()
 	) {
 		this.instance.attach();

@@ -47,6 +47,9 @@ class VNode {
             vnode_utilities_js_1.VNodeUtilities.applyVNProps(this, props);
         }
     }
+    /**
+     * @deprecated
+     */
     ref(run) {
         run(this);
         return this;

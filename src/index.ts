@@ -13,23 +13,23 @@ export type {
 	StyleDeclarationWithProps,
 	VNodeStyleDeclarationWithProps,
 } from "./interfaces.js";
-export * as OragoCss from "./ora_css.js";
+export * as OragoCss from "./sparkle-css.js";
 export {
-	OraCss,
-	OraCssStyle,
-	OraCssStyle as OraCssClass,
-	OraCssAnimation as OC_Animation,
+	Sparkle,
+	SparkleGroup,
+	SparkleStyle,
+	SparkleAnimation,
 
 	// legacy
 	/** @deprecated */
-	OraCss as JCSS,
+	Sparkle as JCSS,
 	/** @deprecated */
-	OraCssStyle as JssClass,
+	SparkleStyle as JssClass,
 	/** @deprecated */
-	OraCssStyle as JssStyle,
+	SparkleStyle as JssStyle,
 	/** @deprecated */
-	OraCssAnimation as JssAnimation,
-} from "./ora_css.js";
+	SparkleAnimation as JssAnimation,
+} from "./sparkle-css.js";
 export {
 	default,
 	generateProxyNode,

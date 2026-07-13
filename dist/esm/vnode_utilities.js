@@ -78,10 +78,14 @@ export class VNodeUtilities {
             case "camel":
                 return text
                     .split("-")
-                    .map((e, i) => (i > 0
-                    ? e.slice(0, 1).toUpperCase()
-                    : e.slice(0, 1).toLowerCase()) +
-                    e.slice(1))
+                    .map((e, i) => {
+                    if (isNaN(Number(e)) == false) {
+                        return `-${e}`;
+                    }
+                    return ((i > 0
+                        ? e.slice(0, 1).toUpperCase()
+                        : e.slice(0, 1).toLowerCase()) + e.slice(1));
+                })
                     .join("");
             case "kebab":
                 return text
@@ -175,6 +179,9 @@ export class VNodeUtilities {
             }
         }
     }
+    static useIf(condition, use_if, use_else = () => { }) {
+        return condition ? use_if : use_else;
+    }
 }
 export class VNodeUtilityClass {
     constructor(node) {
@@ -185,6 +192,28 @@ export class VNodeUtilityClass {
         return this.node;
     }
 }
+export class VNodeTagGroup {
+    constructor() {
+        this.tag_id = ++VNodeTagGroup.index;
+    }
+    getTag() {
+        return `vnode-tag-${this.tag_id}`;
+    }
+    reference(value = "") {
+        return (node) => {
+            node.dataset({
+                [this.getTag()]: value,
+            });
+        };
+    }
+    findAll() {
+        return document.querySelectorAll(`[data-${this.getTag()}]`);
+    }
+    count() {
+        return this.findAll().length;
+    }
+}
+VNodeTagGroup.index = 0;
 export function VNodeExtractEl(node) {
     if ("element" in node) {
         return node.element;

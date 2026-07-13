@@ -44,6 +44,9 @@ export class VNode {
             VNodeUtilities.applyVNProps(this, props);
         }
     }
+    /**
+     * @deprecated
+     */
     ref(run) {
         run(this);
         return this;

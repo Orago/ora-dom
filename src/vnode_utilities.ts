@@ -25,8 +25,8 @@ export type VNProperties<T extends keyof HTMLElementTagNameMap = "div"> = {
 		) => any;
 	};
 	// `on:${string}`: any;
-	ref?: (el: VNodeTagged<T>) => void;
-	use?: ((node: VNodeTagged<T>) => void)[];
+	ref?: (el: VNodeTagged<T> | VNode<any>) => void;
+	use?: ((node: VNodeTagged<T> | VNode<any>) => void)[];
 	children?: any;
 } & {
 	[K in keyof HTMLElementEventMap as `on:${K}`]?: (
@@ -152,13 +152,16 @@ export class VNodeUtilities {
 			case "camel":
 				return text
 					.split("-")
-					.map(
-						(e, i) =>
+					.map((e, i) => {
+						if (isNaN(Number(e)) == false) {
+							return `-${e}`;
+						}
+						return (
 							(i > 0
 								? e.slice(0, 1).toUpperCase()
-								: e.slice(0, 1).toLowerCase()) +
-							e.slice(1)
-					)
+								: e.slice(0, 1).toLowerCase()) + e.slice(1)
+						);
+					})
 					.join("");
 			case "kebab":
 				return text
@@ -269,6 +272,14 @@ export class VNodeUtilities {
 			}
 		}
 	}
+
+	public static useIf<T extends VNode>(
+		condition: boolean,
+		use_if: (node: T) => void,
+		use_else: (node: T) => void = () => {}
+	): (node: T) => void {
+		return condition ? use_if : use_else;
+	}
 }
 export class VNodeUtilityClass<T extends VNode = VNode> {
 	constructor(public node: T) {}
@@ -276,6 +287,30 @@ export class VNodeUtilityClass<T extends VNode = VNode> {
 	public nest(run: (arg0: this) => void): this["node"] {
 		run(this);
 		return this.node;
+	}
+}
+
+export class VNodeTagGroup {
+	static index: number = 0;
+	tag_id: number = ++VNodeTagGroup.index;
+	getTag(): string {
+		return `vnode-tag-${this.tag_id}`;
+	}
+
+	reference(value: string = "") {
+		return (node: VNode<any>) => {
+			node.dataset({
+				[this.getTag()]: value,
+			});
+		};
+	}
+
+	findAll() {
+		return document.querySelectorAll(`[data-${this.getTag()}]`);
+	}
+
+	count() {
+		return this.findAll().length;
 	}
 }
 

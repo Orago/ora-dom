@@ -4,37 +4,38 @@ function camelToKebab(str: string): string {
 	return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
-export type OraCssStyleNames = keyof CSSStyleDeclaration | `--${string}`;
-export type StyleOptions = Partial<Record<OraCssStyleNames, string>>;
+type SparkleStyleNames = keyof CSSStyleDeclaration | `--${string}`;
+type StyleOptions = Partial<Record<SparkleStyleNames, string>>;
 
-export interface OraCssMediaQueryOptions {
+interface SparkleMediaQueryOptions {
 	min_width?: `${number}${"px" | "em"}` | (string & {});
 	max_width?: `${number}${"px" | "em"}` | (string & {});
 	min_height?: `${number}${"px" | "em"}` | (string & {});
 	max_height?: `${number}${"px" | "em"}` | (string & {});
 }
 
-type OraCssExtendOption = Record<`&:${string}` | string, StyleOptions>;
-type OraCssMediaOption = {
-	if: OraCssMediaQueryOptions;
-	styles: StyleOptions & { extend?: OraCssExtendOption };
+type SparkleExtendOption = Record<`&:${string}` | string, StyleOptions>;
+type MediaOption = {
+	if: SparkleMediaQueryOptions;
+	styles: StyleOptions & { extend?: SparkleExtendOption };
 };
-export type OraCssStyleOptions = StyleOptions & {
-	extend?: OraCssExtendOption;
-	media?: OraCssMediaOption[];
-};
-export type AnimationPosition = `${number}%` | "from" | "to";
 
-export type OraCssAnimationOptions = [
+type SparkleStyleOptions = StyleOptions & {
+	extend?: SparkleExtendOption;
+	media?: MediaOption[];
+};
+type AnimationPosition = `${number}%` | "from" | "to";
+
+type AnimationOptions = [
 	position: AnimationPosition | AnimationPosition[],
-	contents: Partial<Record<OraCssStyleNames, string>>
+	contents: Partial<Record<SparkleStyleNames, string>>
 ][];
 
-export class OraCssStyle {
-	static Media = class OraCssMedia {
+class SparkleStyle {
+	static Media = class SparkleMedia {
 		static createString(
-			options: OraCssMediaQueryOptions,
-			styles: [name: string, options: OraCssMediaOption["styles"]][],
+			options: SparkleMediaQueryOptions,
+			styles: [name: string, options: MediaOption["styles"]][],
 			indent: number = 0
 		): string {
 			let indent_string = "\t".repeat(indent);
@@ -55,7 +56,7 @@ export class OraCssStyle {
 			const parts_string = parts.join(" and ");
 			const inner_styles = styles
 				.map(([name, options]) => {
-					return OraCssStyle.toString(name, options, indent + 1);
+					return SparkleStyle.toString(name, options, indent + 1);
 				})
 				.join("\n");
 
@@ -64,14 +65,14 @@ export class OraCssStyle {
 
 		static toString(
 			style_name: string,
-			options: OraCssMediaOption[],
+			options: MediaOption[],
 			indent: number = 0
 		) {
 			let s: string[] = [];
 
 			for (const m of options) {
 				const { ...other_styles } = m.styles;
-				const str = OraCssStyle.Media.createString(
+				const str = SparkleStyle.Media.createString(
 					m.if,
 					[[style_name, other_styles]],
 					indent
@@ -84,18 +85,18 @@ export class OraCssStyle {
 		}
 	};
 
-	static parseContents(data: Partial<Record<OraCssStyleNames, string>>) {
+	static parseContents(data: Partial<Record<SparkleStyleNames, string>>) {
 		return Object.entries(data).map(
 			([name, value]) => `${camelToKebab(name)}: ${value}`
 		);
 	}
 
 	static resolve(name: string, data: StyleOptions) {
-		const formatted_styles = OraCssStyle.parseContents(data).join("; ");
+		const formatted_styles = SparkleStyle.parseContents(data).join("; ");
 		return `${name} { ${formatted_styles} }`;
 	}
 
-	static parseExtend(style_name: string, extend: OraCssExtendOption) {
+	static parseExtend(style_name: string, extend: SparkleExtendOption) {
 		return Object.entries(extend).map(([key, value]) => {
 			let style_name_out: string;
 			if (key.includes("&")) {
@@ -106,23 +107,23 @@ export class OraCssStyle {
 			} else {
 				style_name_out = style_name + key;
 			}
-			return OraCssStyle.resolve(style_name_out, value);
+			return SparkleStyle.resolve(style_name_out, value);
 		});
 	}
 
 	static toString(
 		style_name: string,
-		data: OraCssStyleOptions,
+		data: SparkleStyleOptions,
 		indent: number = 0
 	) {
 		const { extend, media: media_list, ...other_styles } = data;
 		const indent_string = "\t".repeat(indent);
 		const line_seperator = `\n${indent_string}`;
 		let strings: string[] = [];
-		strings.push(OraCssStyle.resolve(style_name, other_styles));
+		strings.push(SparkleStyle.resolve(style_name, other_styles));
 
 		if (media_list != undefined) {
-			const k = OraCssStyle.Media.toString(
+			const k = SparkleStyle.Media.toString(
 				style_name,
 				media_list,
 				indent
@@ -130,7 +131,7 @@ export class OraCssStyle {
 			strings.push(k);
 		}
 		if (extend != undefined) {
-			strings.push(...OraCssStyle.parseExtend(style_name, extend));
+			strings.push(...SparkleStyle.parseExtend(style_name, extend));
 		}
 
 		return (
@@ -139,15 +140,15 @@ export class OraCssStyle {
 		);
 	}
 
-	constructor(public name: string, public data: OraCssStyleOptions) {}
+	constructor(public name: string, public data: SparkleStyleOptions) {}
 
 	toString() {
-		return OraCssStyle.toString(this.name, this.data);
+		return SparkleStyle.toString(this.name, this.data);
 	}
 }
 
-export class OraCssClass extends OraCssStyle {
-	constructor(public classname: string, options: OraCssStyleOptions) {
+class SparkleClass extends SparkleStyle {
+	constructor(public classname: string, options: SparkleStyleOptions) {
 		super(`.${classname}`, options);
 	}
 
@@ -156,10 +157,10 @@ export class OraCssClass extends OraCssStyle {
 	}
 }
 
-export class OraCssAnimation {
-	static toString(name: string, options: OraCssAnimationOptions) {
+class SparkleAnimation {
+	static toString(name: string, options: AnimationOptions) {
 		const formatted_styles = options.map(([position, data]) => {
-			const dat = OraCssStyle.parseContents(data);
+			const dat = SparkleStyle.parseContents(data);
 
 			let range = Array.isArray(position)
 				? position.map(camelToKebab).join("; ")
@@ -170,20 +171,20 @@ export class OraCssAnimation {
 
 		return `@keyframes ${name} { ${formatted_styles.join(" ")} }`;
 	}
-	constructor(public name: string, public options: OraCssAnimationOptions) {}
+	constructor(public name: string, public options: AnimationOptions) {}
 
 	toString() {
-		return OraCssAnimation.toString(this.name, this.options);
+		return SparkleAnimation.toString(this.name, this.options);
 	}
 }
 
-class OraCssDepot<Instance extends { name: string }, OptionType> {
+class SparkleDepot<Instance extends { name: string }, OptionType> {
 	private counter = 0;
 	private readonly indexes: Map<Instance, number> = new Map();
 	public readonly list: Map<string, Instance> = new Map();
 
 	constructor(
-		public manager: OraCss,
+		public manager: SparkleGroup,
 		public generator: (name: string, options: OptionType) => Instance
 	) {}
 
@@ -206,14 +207,12 @@ class OraCssDepot<Instance extends { name: string }, OptionType> {
 	public add(instance: Instance): this;
 	public add(...args: any[]): this {
 		switch (arguments.length) {
-			case 1: {
+			case 1:
 				this.insert(args[0]);
 				break;
-			}
-			case 2: {
+			case 2:
 				this.insert(this.generator(args[0], args[1]));
 				break;
-			}
 		}
 
 		return this;
@@ -244,26 +243,90 @@ class OraCssDepot<Instance extends { name: string }, OptionType> {
 	}
 }
 
-class StyleManager extends OraCssDepot<OraCssStyle, OraCssStyleOptions> {
-	constructor(manager: OraCss) {
-		super(manager, (name, options) => new OraCssStyle(name, options));
-	}
-}
-class AnimationManager extends OraCssDepot<
-	OraCssAnimation,
-	OraCssAnimationOptions
-> {
-	constructor(manager: OraCss) {
-		super(manager, (name, options) => new OraCssAnimation(name, options));
+class StyleManager extends SparkleDepot<SparkleStyle, SparkleStyleOptions> {
+	constructor(manager: SparkleGroup) {
+		super(manager, (name, options) => new SparkleStyle(name, options));
 	}
 }
 
-export class OraCss {
+class AnimationManager extends SparkleDepot<
+	SparkleAnimation,
+	AnimationOptions
+> {
+	constructor(manager: SparkleGroup) {
+		super(manager, (name, options) => new SparkleAnimation(name, options));
+	}
+}
+
+class SparkleGroup {
+	public readonly styles = makeCallableClass(StyleManager, this);
+	public readonly animations = makeCallableClass(AnimationManager, this);
+
+	public readonly raw_chunks: string[] = [];
+
+	public insert(...instances: (SparkleStyle | SparkleAnimation)[]): this {
+		for (const instance of instances) {
+			if (instance instanceof SparkleStyle) {
+				this.styles.add(instance);
+			} else if (instance instanceof SparkleAnimation) {
+				this.animations.add(instance);
+			}
+		}
+		return this;
+	}
+
+	public css(value: TemplateStringsArray) {
+		this.raw_chunks.push(value[0].trim());
+	}
+
+	public getUsageCount() {
+		function selectAndCount(e: SparkleStyle) {
+			return document.querySelectorAll(e.name).length;
+		}
+
+		return Array.from(this.styles.list.values())
+			.map(selectAndCount)
+			.reduce((accumulator, current) => accumulator + current, 0);
+	}
+
+	public use(plugins: ((node: this) => void)[]): this {
+		for (const plugin of plugins) {
+			plugin(this);
+		}
+
+		return this;
+	}
+
+	public getChunks(): {
+		styles: string[];
+		animations: string[];
+		raw: string[];
+	} {
+		const styles = Array.from(this.styles.list.values()).map((instance) =>
+			instance.toString()
+		);
+
+		const animations = Array.from(this.animations.list.values()).map(
+			(instance) => instance.toString()
+		);
+
+		return {
+			styles,
+			animations,
+			raw: this.raw_chunks,
+		};
+	}
+}
+
+class Sparkle {
+	public static Group = SparkleGroup;
+
 	public static readonly ExtendStyle = class ExtendStyle {
 		public static classname(name: string) {
 			return ` .${name}`;
 		}
 	};
+
 	public static createPluginStyle(callback: (manager: StyleManager) => void) {
 		return callback;
 	}
@@ -274,30 +337,39 @@ export class OraCss {
 	}
 	public static createStyle(
 		name: string,
-		data: OraCssStyleOptions
-	): OraCssStyle {
-		return new OraCssStyle(name, data);
+		data: SparkleStyleOptions
+	): SparkleStyle {
+		return new SparkleStyle(name, data);
 	}
 
 	public static createClass(
 		name: string,
-		data: OraCssStyleOptions
-	): OraCssClass {
-		return new OraCssClass(name, data);
+		data: SparkleStyleOptions
+	): SparkleClass {
+		return new SparkleClass(name, data);
 	}
 
 	public static createAnimation(
 		name: string,
-		options: OraCssAnimationOptions
-	): OraCssAnimation {
-		return new OraCssAnimation(name, options);
+		options: AnimationOptions
+	): SparkleAnimation {
+		return new SparkleAnimation(name, options);
 	}
 
 	public element: HTMLStyleElement = document.createElement("style");
-	public readonly styles = makeCallableClass(StyleManager, this);
-	public readonly animations = makeCallableClass(AnimationManager, this);
+	public readonly groups: Set<SparkleGroup> = new Set();
+
+	public chunks: string[] = [];
 
 	public attatched?: HTMLElement;
+
+	constructor() {}
+
+	public newGroup(): SparkleGroup {
+		const group = new SparkleGroup();
+		this.groups.add(group);
+		return group;
+	}
 
 	/**
 	 * inserts stylesheet into the dom onto element then stores reference
@@ -323,41 +395,53 @@ export class OraCss {
 		return this;
 	}
 
-	public insert(...instances: (OraCssStyle | OraCssAnimation)[]): this {
+	public insert(...instances: SparkleGroup[]): this {
 		for (const instance of instances) {
-			if (instance instanceof OraCssStyle) {
-				this.styles.add(instance);
-			} else if (instance instanceof OraCssAnimation) {
-				this.animations.add(instance);
-			}
+			this.groups.add(instance);
 		}
+
 		return this;
 	}
 
 	public build(): this {
-		const classes_string: string = Array.from(this.styles.list.values())
-			.map((instance) => instance.toString())
-			.join("\n");
+		const chunks_content: {
+			styles: string[];
+			animations: string[];
+			raw: string[];
+		} = {
+			styles: [],
+			animations: [],
+			raw: [],
+		};
 
-		const animations_string: string = Array.from(
-			this.animations.list.values()
-		)
-			.map((instance) => instance.toString())
-			.join("\n");
+		for (const group of this.groups) {
+			const chunks = group.getChunks();
+			chunks_content.styles.push(...chunks.styles);
+			chunks_content.animations.push(...chunks.animations);
+			chunks_content.raw.push(...chunks.raw);
+		}
 
-		const result: string = [classes_string, animations_string].join(" ");
+		const styles_string: string = chunks_content.styles.join(" ");
+		const animations_string: string = chunks_content.animations.join(" ");
+		const raw_string: string = chunks_content.raw.join(" ");
+
+		const result: string = [
+			styles_string,
+			animations_string,
+			raw_string,
+		].join(" ");
 		this.element.innerHTML = result;
 		return this;
 	}
 
 	public getUsageCount() {
-		function selectAndCount(e: OraCssStyle) {
-			return document.querySelectorAll(e.name).length;
+		let count: number = 0;
+
+		for (const group of this.groups) {
+			count += group.getUsageCount();
 		}
 
-		return Array.from(this.styles.list.values())
-			.map(selectAndCount)
-			.reduce((accumulator, current) => accumulator + current, 0);
+		return count;
 	}
 
 	public ref(run: (arg0: this) => void): this {
@@ -365,3 +449,17 @@ export class OraCss {
 		return this;
 	}
 }
+
+export {
+	type SparkleStyleNames,
+	type StyleOptions,
+	type SparkleMediaQueryOptions,
+	type SparkleStyleOptions,
+	type AnimationPosition,
+	type AnimationOptions,
+	Sparkle,
+	SparkleGroup,
+	SparkleStyle,
+	SparkleClass,
+	SparkleAnimation,
+};

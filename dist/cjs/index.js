@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Experimental = exports.qsAll = exports.qs = exports.ProxyNode = exports.newNode = exports.generateProxyNode = exports.default = exports.JssAnimation = exports.JssStyle = exports.JssClass = exports.JCSS = exports.OC_Animation = exports.OraCssClass = exports.OraCssStyle = exports.OraCss = exports.OragoCss = exports.ObserverTracking = exports.JCSSTracker = exports.Picture = exports.Fullscreen = exports.VNodeEventGroup = exports.StateTracking = exports.StyledVNode = exports.VNFragment = exports.vn = exports.VNode = exports.VNX = void 0;
+exports.Experimental = exports.qsAll = exports.qs = exports.ProxyNode = exports.newNode = exports.generateProxyNode = exports.default = exports.JssAnimation = exports.JssStyle = exports.JssClass = exports.JCSS = exports.SparkleAnimation = exports.SparkleStyle = exports.SparkleGroup = exports.Sparkle = exports.OragoCss = exports.ObserverTracking = exports.JCSSTracker = exports.Picture = exports.Fullscreen = exports.VNodeEventGroup = exports.StateTracking = exports.StyledVNode = exports.VNFragment = exports.vn = exports.VNode = exports.VNX = void 0;
 var jsx_runtime_js_1 = require("./jsx-runtime.js");
 Object.defineProperty(exports, "VNX", { enumerable: true, get: function () { return jsx_runtime_js_1.VNX; } });
 var vnode_js_1 = require("./vnode.js");
@@ -21,21 +21,21 @@ var vnode_styled_js_2 = require("./vnode_styled.js");
 Object.defineProperty(exports, "JCSSTracker", { enumerable: true, get: function () { return vnode_styled_js_2.JCSSTracker; } });
 var dom_observer_js_1 = require("./dom_observer.js");
 Object.defineProperty(exports, "ObserverTracking", { enumerable: true, get: function () { return dom_observer_js_1.ObserverTracking; } });
-exports.OragoCss = require("./ora_css.js");
-var ora_css_js_1 = require("./ora_css.js");
-Object.defineProperty(exports, "OraCss", { enumerable: true, get: function () { return ora_css_js_1.OraCss; } });
-Object.defineProperty(exports, "OraCssStyle", { enumerable: true, get: function () { return ora_css_js_1.OraCssStyle; } });
-Object.defineProperty(exports, "OraCssClass", { enumerable: true, get: function () { return ora_css_js_1.OraCssStyle; } });
-Object.defineProperty(exports, "OC_Animation", { enumerable: true, get: function () { return ora_css_js_1.OraCssAnimation; } });
+exports.OragoCss = require("./sparkle-css.js");
+var sparkle_css_js_1 = require("./sparkle-css.js");
+Object.defineProperty(exports, "Sparkle", { enumerable: true, get: function () { return sparkle_css_js_1.Sparkle; } });
+Object.defineProperty(exports, "SparkleGroup", { enumerable: true, get: function () { return sparkle_css_js_1.SparkleGroup; } });
+Object.defineProperty(exports, "SparkleStyle", { enumerable: true, get: function () { return sparkle_css_js_1.SparkleStyle; } });
+Object.defineProperty(exports, "SparkleAnimation", { enumerable: true, get: function () { return sparkle_css_js_1.SparkleAnimation; } });
 // legacy
 /** @deprecated */
-Object.defineProperty(exports, "JCSS", { enumerable: true, get: function () { return ora_css_js_1.OraCss; } });
+Object.defineProperty(exports, "JCSS", { enumerable: true, get: function () { return sparkle_css_js_1.Sparkle; } });
 /** @deprecated */
-Object.defineProperty(exports, "JssClass", { enumerable: true, get: function () { return ora_css_js_1.OraCssStyle; } });
+Object.defineProperty(exports, "JssClass", { enumerable: true, get: function () { return sparkle_css_js_1.SparkleStyle; } });
 /** @deprecated */
-Object.defineProperty(exports, "JssStyle", { enumerable: true, get: function () { return ora_css_js_1.OraCssStyle; } });
+Object.defineProperty(exports, "JssStyle", { enumerable: true, get: function () { return sparkle_css_js_1.SparkleStyle; } });
 /** @deprecated */
-Object.defineProperty(exports, "JssAnimation", { enumerable: true, get: function () { return ora_css_js_1.OraCssAnimation; } });
+Object.defineProperty(exports, "JssAnimation", { enumerable: true, get: function () { return sparkle_css_js_1.SparkleAnimation; } });
 var proxynode_js_1 = require("./proxynode.js");
 Object.defineProperty(exports, "default", { enumerable: true, get: function () { return proxynode_js_1.default; } });
 Object.defineProperty(exports, "generateProxyNode", { enumerable: true, get: function () { return proxynode_js_1.generateProxyNode; } });

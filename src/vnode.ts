@@ -210,6 +210,9 @@ export class VNode<E extends HTMLElement = HTMLElement> {
 		}
 	}
 
+	/**
+	 * @deprecated
+	 */
 	public ref(run: (arg0: this) => void): this {
 		run(this);
 		return this;

@@ -11,17 +11,17 @@ var __rest = (this && this.__rest) || function (s, e) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OraCss = exports.OraCssAnimation = exports.OraCssClass = exports.OraCssStyle = void 0;
+exports.SparkleAnimation = exports.SparkleClass = exports.SparkleStyle = exports.SparkleGroup = exports.Sparkle = void 0;
 const lib_1 = require("@orago/lib");
 function camelToKebab(str) {
     return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
 }
-class OraCssStyle {
+class SparkleStyle {
     static parseContents(data) {
         return Object.entries(data).map(([name, value]) => `${camelToKebab(name)}: ${value}`);
     }
     static resolve(name, data) {
-        const formatted_styles = OraCssStyle.parseContents(data).join("; ");
+        const formatted_styles = SparkleStyle.parseContents(data).join("; ");
         return `${name} { ${formatted_styles} }`;
     }
     static parseExtend(style_name, extend) {
@@ -36,7 +36,7 @@ class OraCssStyle {
             else {
                 style_name_out = style_name + key;
             }
-            return OraCssStyle.resolve(style_name_out, value);
+            return SparkleStyle.resolve(style_name_out, value);
         });
     }
     static toString(style_name, data, indent = 0) {
@@ -44,13 +44,13 @@ class OraCssStyle {
         const indent_string = "\t".repeat(indent);
         const line_seperator = `\n${indent_string}`;
         let strings = [];
-        strings.push(OraCssStyle.resolve(style_name, other_styles));
+        strings.push(SparkleStyle.resolve(style_name, other_styles));
         if (media_list != undefined) {
-            const k = OraCssStyle.Media.toString(style_name, media_list, indent);
+            const k = SparkleStyle.Media.toString(style_name, media_list, indent);
             strings.push(k);
         }
         if (extend != undefined) {
-            strings.push(...OraCssStyle.parseExtend(style_name, extend));
+            strings.push(...SparkleStyle.parseExtend(style_name, extend));
         }
         return ((indent > 0 ? line_seperator : "") +
             strings.join(" " + line_seperator));
@@ -60,11 +60,11 @@ class OraCssStyle {
         this.data = data;
     }
     toString() {
-        return OraCssStyle.toString(this.name, this.data);
+        return SparkleStyle.toString(this.name, this.data);
     }
 }
-exports.OraCssStyle = OraCssStyle;
-OraCssStyle.Media = class OraCssMedia {
+exports.SparkleStyle = SparkleStyle;
+SparkleStyle.Media = class SparkleMedia {
     static createString(options, styles, indent = 0) {
         let indent_string = "\t".repeat(indent);
         let parts = [];
@@ -83,7 +83,7 @@ OraCssStyle.Media = class OraCssMedia {
         const parts_string = parts.join(" and ");
         const inner_styles = styles
             .map(([name, options]) => {
-            return OraCssStyle.toString(name, options, indent + 1);
+            return SparkleStyle.toString(name, options, indent + 1);
         })
             .join("\n");
         return `@media ${parts_string} {${inner_styles}\n${indent_string}}`;
@@ -92,13 +92,13 @@ OraCssStyle.Media = class OraCssMedia {
         let s = [];
         for (const m of options) {
             const other_styles = __rest(m.styles, []);
-            const str = OraCssStyle.Media.createString(m.if, [[style_name, other_styles]], indent);
+            const str = SparkleStyle.Media.createString(m.if, [[style_name, other_styles]], indent);
             s.push(str);
         }
         return s.join("🐱🐱🐱");
     }
 };
-class OraCssClass extends OraCssStyle {
+class SparkleClass extends SparkleStyle {
     constructor(classname, options) {
         super(`.${classname}`, options);
         this.classname = classname;
@@ -107,11 +107,11 @@ class OraCssClass extends OraCssStyle {
         return this.classname;
     }
 }
-exports.OraCssClass = OraCssClass;
-class OraCssAnimation {
+exports.SparkleClass = SparkleClass;
+class SparkleAnimation {
     static toString(name, options) {
         const formatted_styles = options.map(([position, data]) => {
-            const dat = OraCssStyle.parseContents(data);
+            const dat = SparkleStyle.parseContents(data);
             let range = Array.isArray(position)
                 ? position.map(camelToKebab).join("; ")
                 : camelToKebab(position);
@@ -124,11 +124,11 @@ class OraCssAnimation {
         this.options = options;
     }
     toString() {
-        return OraCssAnimation.toString(this.name, this.options);
+        return SparkleAnimation.toString(this.name, this.options);
     }
 }
-exports.OraCssAnimation = OraCssAnimation;
-class OraCssDepot {
+exports.SparkleAnimation = SparkleAnimation;
+class SparkleDepot {
     constructor(manager, generator) {
         this.manager = manager;
         this.generator = generator;
@@ -150,14 +150,12 @@ class OraCssDepot {
     }
     add(...args) {
         switch (arguments.length) {
-            case 1: {
+            case 1:
                 this.insert(args[0]);
                 break;
-            }
-            case 2: {
+            case 2:
                 this.insert(this.generator(args[0], args[1]));
                 break;
-            }
         }
         return this;
     }
@@ -185,22 +183,62 @@ class OraCssDepot {
         }
     }
 }
-class StyleManager extends OraCssDepot {
+class StyleManager extends SparkleDepot {
     constructor(manager) {
-        super(manager, (name, options) => new OraCssStyle(name, options));
+        super(manager, (name, options) => new SparkleStyle(name, options));
     }
 }
-class AnimationManager extends OraCssDepot {
+class AnimationManager extends SparkleDepot {
     constructor(manager) {
-        super(manager, (name, options) => new OraCssAnimation(name, options));
+        super(manager, (name, options) => new SparkleAnimation(name, options));
     }
 }
-class OraCss {
+class SparkleGroup {
     constructor() {
-        this.element = document.createElement("style");
         this.styles = (0, lib_1.makeCallableClass)(StyleManager, this);
         this.animations = (0, lib_1.makeCallableClass)(AnimationManager, this);
+        this.raw_chunks = [];
     }
+    insert(...instances) {
+        for (const instance of instances) {
+            if (instance instanceof SparkleStyle) {
+                this.styles.add(instance);
+            }
+            else if (instance instanceof SparkleAnimation) {
+                this.animations.add(instance);
+            }
+        }
+        return this;
+    }
+    css(value) {
+        this.raw_chunks.push(value[0].trim());
+    }
+    getUsageCount() {
+        function selectAndCount(e) {
+            return document.querySelectorAll(e.name).length;
+        }
+        return Array.from(this.styles.list.values())
+            .map(selectAndCount)
+            .reduce((accumulator, current) => accumulator + current, 0);
+    }
+    use(plugins) {
+        for (const plugin of plugins) {
+            plugin(this);
+        }
+        return this;
+    }
+    getChunks() {
+        const styles = Array.from(this.styles.list.values()).map((instance) => instance.toString());
+        const animations = Array.from(this.animations.list.values()).map((instance) => instance.toString());
+        return {
+            styles,
+            animations,
+            raw: this.raw_chunks,
+        };
+    }
+}
+exports.SparkleGroup = SparkleGroup;
+class Sparkle {
     static createPluginStyle(callback) {
         return callback;
     }
@@ -208,13 +246,23 @@ class OraCss {
         return callback;
     }
     static createStyle(name, data) {
-        return new OraCssStyle(name, data);
+        return new SparkleStyle(name, data);
     }
     static createClass(name, data) {
-        return new OraCssClass(name, data);
+        return new SparkleClass(name, data);
     }
     static createAnimation(name, options) {
-        return new OraCssAnimation(name, options);
+        return new SparkleAnimation(name, options);
+    }
+    constructor() {
+        this.element = document.createElement("style");
+        this.groups = new Set();
+        this.chunks = [];
+    }
+    newGroup() {
+        const group = new SparkleGroup();
+        this.groups.add(group);
+        return group;
     }
     /**
      * inserts stylesheet into the dom onto element then stores reference
@@ -240,41 +288,48 @@ class OraCss {
     }
     insert(...instances) {
         for (const instance of instances) {
-            if (instance instanceof OraCssStyle) {
-                this.styles.add(instance);
-            }
-            else if (instance instanceof OraCssAnimation) {
-                this.animations.add(instance);
-            }
+            this.groups.add(instance);
         }
         return this;
     }
     build() {
-        const classes_string = Array.from(this.styles.list.values())
-            .map((instance) => instance.toString())
-            .join("\n");
-        const animations_string = Array.from(this.animations.list.values())
-            .map((instance) => instance.toString())
-            .join("\n");
-        const result = [classes_string, animations_string].join(" ");
+        const chunks_content = {
+            styles: [],
+            animations: [],
+            raw: [],
+        };
+        for (const group of this.groups) {
+            const chunks = group.getChunks();
+            chunks_content.styles.push(...chunks.styles);
+            chunks_content.animations.push(...chunks.animations);
+            chunks_content.raw.push(...chunks.raw);
+        }
+        const styles_string = chunks_content.styles.join(" ");
+        const animations_string = chunks_content.animations.join(" ");
+        const raw_string = chunks_content.raw.join(" ");
+        const result = [
+            styles_string,
+            animations_string,
+            raw_string,
+        ].join(" ");
         this.element.innerHTML = result;
         return this;
     }
     getUsageCount() {
-        function selectAndCount(e) {
-            return document.querySelectorAll(e.name).length;
+        let count = 0;
+        for (const group of this.groups) {
+            count += group.getUsageCount();
         }
-        return Array.from(this.styles.list.values())
-            .map(selectAndCount)
-            .reduce((accumulator, current) => accumulator + current, 0);
+        return count;
     }
     ref(run) {
         run(this);
         return this;
     }
 }
-exports.OraCss = OraCss;
-OraCss.ExtendStyle = class ExtendStyle {
+exports.Sparkle = Sparkle;
+Sparkle.Group = SparkleGroup;
+Sparkle.ExtendStyle = class ExtendStyle {
     static classname(name) {
         return ` .${name}`;
     }
