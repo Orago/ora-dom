@@ -212,7 +212,7 @@ class VNodeTagGroup {
         };
     }
     findAll() {
-        return document.querySelectorAll(`[data-${this.getTag()}]`);
+        return Array.from(document.querySelectorAll(`[data-${this.getTag()}]`));
     }
     count() {
         return this.findAll().length;

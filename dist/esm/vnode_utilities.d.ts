@@ -43,7 +43,7 @@ export declare class VNodeTagGroup {
     tag_id: number;
     getTag(): string;
     reference(value?: string): (node: VNode<any>) => void;
-    findAll(): NodeListOf<Element>;
+    findAll(): HTMLElement[];
     count(): number;
 }
 export declare function VNodeExtractEl(node: VNodeExtractable): HTMLElement;
